@@ -23,10 +23,11 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html{height:100%;overflow-x:hidden}
 body{
+  min-height:100dvh;overflow-x:hidden;
   font-family:'Manrope',system-ui,sans-serif;background:var(--ivory);color:var(--ink);
-  font-size:15px;line-height:1.5;overscroll-behavior-y:none;
+  font-size:15px;line-height:1.5;overscroll-behavior-y:contain;
   -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3,.display{font-family:'Marcellus',serif;font-weight:400;letter-spacing:.02em}
@@ -41,7 +42,6 @@ header{
 header::after{ /* kemer silueti */
   content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
   background:var(--ivory);
-  clip-path:path("M0,34 L0,20 Q80,0 160,14 T320,10 T480,14 T640,10 T800,14 L800,34 Z");
   clip-path:ellipse(120% 100% at 50% 100%);
 }
 .hrow{display:flex;align-items:center;gap:12px}
@@ -332,8 +332,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'💰', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 const CHANGELOG=[
+ {v:'1.2.0',d:'19.07.2026',n:'Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi'},
  {v:'1.1.0',d:'19.07.2026',n:'Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi'},
  {v:'1.0.0',d:'19.07.2026',n:'İlk sürüm: varlık takibi, zekât hesabı, borç/alacak, kur çekme, JSON yedekleme'},
 ];
@@ -448,6 +449,12 @@ function renderVarlik(){
   }).join('');
 }
 
+function zakatPaid(){
+  // Havl başlangıcından (yoksa son 354 günden) bu yana ödenen zekât
+  let start=S.havl;
+  if(!start){const d=new Date();d.setDate(d.getDate()-HAVL_DAYS);start=d.toISOString().slice(0,10)}
+  return S.zakat.filter(z=>z.date>=start).reduce((s,z)=>s+z.amount,0);
+}
 function renderZekat(){
   const t=totals();
   const pct=t.nisab>0?Math.min(100,t.net/t.nisab*100):0;
@@ -460,7 +467,11 @@ function renderZekat(){
    '<div style="margin-top:12px"><div class="distbar"><div style="width:'+pct+'%;background:linear-gradient(90deg,var(--green),var(--gold))"></div></div>'+
    '<div class="mini">Nisaba oran: %'+pct.toFixed(0)+'</div></div>'+
    (t.zekat>0
-     ?'<div class="zbanner due" style="margin-top:14px"><div class="ic">🌱</div><div>Ödenecek zekât (1/40): <b class="num">'+fmt(t.zekat)+' ₺</b></div></div>'
+     ?(()=>{const p=zakatPaid(),k=Math.max(0,t.zekat-p);
+       return '<div class="zbanner '+(k>0?'due':'free')+'" style="margin-top:14px"><div class="ic">'+(k>0?'🌱':'✅')+'</div><div>'+
+       'Hesaplanan zekât: <b class="num">'+fmt(t.zekat)+' ₺</b><br>'+
+       '<small style="color:var(--muted)">Bu dönem ödenen: <b class="num">'+fmt(p)+' ₺</b> · Kalan: <b class="num" style="color:'+(k>0?'var(--red)':'var(--green)')+'">'+fmt(k)+' ₺</b></small>'+
+       (k<=0?'<br><small style="color:var(--green)">Bu dönemin zekâtı tamamlandı 🤲</small>':'')+'</div></div>'})()
      :'<div class="zbanner free" style="margin-top:14px"><div class="ic">🕊️</div><div>Nisaba ulaşılmadığı için zekât gerekmiyor.</div></div>');
 
   renderHavl();
@@ -531,7 +542,7 @@ function renderBorc(){
   let list=S.debts.slice().sort((a,b)=>(a.done-b.done)||((a.due||'9999').localeCompare(b.due||'9999')));
   if(debtFilter!=='all')list=list.filter(d=>d.dir===debtFilter);
   if(!list.length){el.innerHTML='<div class="empty"><span class="big">🤝</span>Kayıt yok.</div>';return}
-  const curU={tl:'₺',usd:'$',eur:'€',gram:'gr altın'};
+  const curU={tl:'₺',usd:'$',eur:'€',gram:'gr altın',ceyrek:'çeyrek',yarim:'yarım',tam:'tam altın',cumhuriyet:'Cumhuriyet',ata:'Ata',gumus:'gr gümüş'};
   el.innerHTML=list.map(d=>{
     const v=debtValueTL(d),isB=d.dir==='borc';
     const overdue=!d.done&&d.due&&d.due<new Date().toISOString().slice(0,10);
@@ -583,7 +594,7 @@ function openDebt(){
   <label>Kişi / Kurum</label><input id="f-who" placeholder="örn. Ahmet abi">
   <div class="frow">
     <div><label>Tutar</label><input type="number" step="0.01" inputmode="decimal" id="f-amt" placeholder="0"></div>
-    <div><label>Birim</label><select id="f-cur"><option value="tl">TL ₺</option><option value="usd">Dolar $</option><option value="eur">Euro €</option><option value="gram">Gram Altın</option></select></div>
+    <div><label>Birim</label><select id="f-cur"><option value="tl">TL ₺</option><option value="usd">Dolar $</option><option value="eur">Euro €</option><option value="gram">Gram Altın</option><option value="ceyrek">Çeyrek Altın</option><option value="yarim">Yarım Altın</option><option value="tam">Tam Altın</option><option value="cumhuriyet">Cumhuriyet Altını</option><option value="ata">Ata Altın</option><option value="gumus">Gümüş (gr)</option></select></div>
   </div>
   <label>Vade (isteğe bağlı)</label><input type="date" id="f-due">
   <button class="btn primary" onclick="saveDebt()">Ekle</button>`);
@@ -607,10 +618,10 @@ function delDebt(id){if(!confirm('Bu kayıt silinsin mi?'))return;S.debts=S.debt
 
 /* ═══════════ ZEKÂT CRUD ═══════════ */
 function openZekat(){
-  const t=totals();
+  const t=totals(),p=zakatPaid(),k=Math.max(0,t.zekat-p);
   sheet(`<h3>Zekât Ödemesi Kaydet</h3>
-  ${t.zekat>0?'<p class="mini">Hesaplanan tutar: <b class="num">'+fmt(t.zekat)+' ₺</b></p>':''}
-  <label>Tutar (₺)</label><input type="number" step="0.01" inputmode="decimal" id="f-zamt" value="${t.zekat>0?Math.round(t.zekat):''}">
+  ${t.zekat>0?'<p class="mini">Hesaplanan: <b class="num">'+fmt(t.zekat)+' ₺</b> · Ödenen: <b class="num">'+fmt(p)+' ₺</b> · Kalan: <b class="num">'+fmt(k)+' ₺</b></p>':''}
+  <label>Tutar (₺)</label><input type="number" step="0.01" inputmode="decimal" id="f-zamt" value="${k>0?Math.round(k):''}">
   <label>Tarih</label><input type="date" id="f-zdate" value="${new Date().toISOString().slice(0,10)}">
   <label>Açıklama (isteğe bağlı)</label><input id="f-znote" placeholder="örn. 1447 yılı zekâtı">
   <button class="btn gold" onclick="saveZekat()">Kaydet</button>`);
@@ -621,7 +632,8 @@ function saveZekat(){
   const note=document.getElementById('f-znote').value.trim();
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
   S.zakat.push({id:uid(),amount,date,note});
-  if(S.havl&&confirm('Kamerî yıl başlangıcı bu ödeme tarihine yenilensin mi?'))S.havl=date;
+  const kalan=Math.max(0,totals().zekat-zakatPaid());
+  if(S.havl&&kalan<=0&&confirm('Bu dönemin zekâtı tamamlandı. Kamerî yıl başlangıcı bu ödeme tarihine yenilensin mi?'))S.havl=date;
   save();closeSheet();renderAll();toast('Allah kabul etsin 🤲');
 }
 function delZekat(id){if(!confirm('Bu kayıt silinsin mi?'))return;S.zakat=S.zakat.filter(z=>z.id!==id);save();renderAll()}
@@ -678,8 +690,8 @@ function wipeData(){
 /* ═══════════ YARDIMCI ═══════════ */
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function trDate(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'.'+m+'.'+y}
-function sheet(html){document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;document.getElementById('overlay').classList.add('open')}
-function closeSheet(){document.getElementById('overlay').classList.remove('open')}
+function sheet(html){document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;document.getElementById('overlay').classList.add('open');document.body.style.overflow='hidden'}
+function closeSheet(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow=''}
 
 /* Sekmeler */
 document.querySelectorAll('nav .tab').forEach(t=>t.onclick=()=>{

@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.1.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.2.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -29,10 +29,10 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Nisab: **85 gram altın** karşılığı, güncel kurla otomatik
 - Matrah = varlıklar + alacaklar − borçlar; nisabı aşınca **%2,5 (1/40)** hesaplanır
 - **Kamerî yıl (havl) takibi**: nisaba ulaştığınız tarihi kaydedin, 354 gün dolunca uygulama uyarır
-- Ödediğiniz zekâtları tarihçesiyle kaydedin; ödeme sonrası havl otomatik yenilenebilir
+- Ödediğiniz zekâtları tarihçesiyle kaydedin; **ödenen / kalan** tutar otomatik izlenir, dönem tamamlanınca havl yenilenebilir
 
 ### 🤝 Borç / Alacak
-- TL, Dolar, Euro veya **gram altın** cinsinden borç ve alacak kaydı
+- TL, Dolar, Euro, **gram/çeyrek/yarım/tam/Cumhuriyet/Ata altını** veya gümüş cinsinden borç ve alacak kaydı
 - Vade takibi — geciken kayıtlar kırmızı uyarı alır
 - "Ödendi" işaretleme ve filtreleme
 
@@ -71,6 +71,7 @@ Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.2.0** | 19.07.2026 | Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi |
 | **v1.1.0** | 19.07.2026 | Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi |
 | **v1.0.0** | 19.07.2026 | İlk sürüm: varlık takibi, zekât hesabı, borç/alacak takibi, kur çekme, JSON yedekleme |
 
