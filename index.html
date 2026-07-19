@@ -248,7 +248,7 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
   </div>
   <div class="card">
     <h2>Bilgi <span class="rule"></span></h2>
-    <p class="mini" style="margin-top:0">Nisab miktarı <b>85 gram altın</b> karşılığı esas alınır. Nisaba ulaşan ve üzerinden bir kamerî yıl geçen net servetin <b>%2,5</b>'i (1/40) zekât olarak verilir. Borçlar servetten düşülür. Kesin hüküm için din görevlisine veya Diyanet'e danışınız.</p>
+    <p class="mini" style="margin-top:0">Nisab miktarı <b>85 gram has altın</b> karşılığı esas alınır. Ayarlı ziynet altınları (22/18/14) has karşılığıyla, darphane altınları (çeyrek, yarım, tam, Cumhuriyet, Ata) güncel piyasa değeriyle hesaba katılır; her birinin has gram içeriği varlık listesinde gösterilir. Nisaba ulaşan ve üzerinden bir kamerî yıl geçen net servetin <b>%2,5</b>'i (1/40) zekât olarak verilir. Borçlar servetten düşülür. Kesin hüküm için din görevlisine veya Diyanet'e danışınız.</p>
   </div>
 </section>
 
@@ -317,12 +317,12 @@ const LOGO='data:image/webp;base64,UklGRkh9AABXRUJQVlA4WAoAAAAQAAAABAEAPwEAQUxQS
 /* ═══════════ VERİ ═══════════ */
 const KEY='bereket_v1';
 const ASSET_TYPES={
-  gram:  {name:'Gram Altın',   unit:'gr',   ic:'🪙', gold:true},
-  ceyrek:{name:'Çeyrek Altın', unit:'adet', ic:'🪙', gold:true},
-  yarim: {name:'Yarım Altın',  unit:'adet', ic:'🪙', gold:true},
-  tam:   {name:'Tam Altın',    unit:'adet', ic:'🪙', gold:true},
-  cumhuriyet:{name:'Cumhuriyet Altını',unit:'adet',ic:'🪙',gold:true},
-  ata:   {name:'Ata Altın',    unit:'adet', ic:'🪙', gold:true},
+  gram:  {name:'Gram Altın',   unit:'gr',   ic:'🪙', gold:true, hasGr:1},
+  ceyrek:{name:'Çeyrek Altın', unit:'adet', ic:'🪙', gold:true, hasGr:1.607},
+  yarim: {name:'Yarım Altın',  unit:'adet', ic:'🪙', gold:true, hasGr:3.215},
+  tam:   {name:'Tam Altın',    unit:'adet', ic:'🪙', gold:true, hasGr:6.43},
+  cumhuriyet:{name:'Cumhuriyet Altını',unit:'adet',ic:'🪙',gold:true, hasGr:6.615},
+  ata:   {name:'Ata Altın',    unit:'adet', ic:'🪙', gold:true, hasGr:6.615},
   bilezik22:{name:'22 Ayar Bilezik/Ziynet',unit:'gr',ic:'💍',gold:true,factor:0.916,base:'gram'},
   altin18:{name:'18 Ayar Altın',unit:'gr', ic:'💍', gold:true,factor:0.750,base:'gram'},
   altin14:{name:'14 Ayar Altın',unit:'gr', ic:'💍', gold:true,factor:0.585,base:'gram'},
@@ -332,8 +332,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'💰', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.3.0';
 const CHANGELOG=[
+ {v:'1.3.0',d:'19.07.2026',n:'Altın varlıklarda has karşılığı gösterimi (çeyrek 1,607 g · yarım 3,215 g · tam 6,43 g · Cumhuriyet/Ata 6,615 g), toplam has altın satırı, zekât sayfasında 85 g nisabla has karşılaştırması'},
  {v:'1.2.0',d:'19.07.2026',n:'Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi'},
  {v:'1.1.0',d:'19.07.2026',n:'Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi'},
  {v:'1.0.0',d:'19.07.2026',n:'İlk sürüm: varlık takibi, zekât hesabı, borç/alacak, kur çekme, JSON yedekleme'},
@@ -367,6 +368,13 @@ function assetValue(a){
   if(T.factor)return a.qty*T.factor*(S.rates[T.base]||0);
   return a.qty*(S.rates[a.type]||0);
 }
+function hasGrams(a){
+  const T=ASSET_TYPES[a.type];
+  if(T.factor)return a.qty*T.factor;      // ayarlı ziynet: gram × milyem
+  if(T.hasGr)return a.qty*T.hasGr;        // darphane altını: adet × has içerik
+  return 0;
+}
+function totalHasGold(){return S.assets.reduce((s,a)=>s+hasGrams(a),0)}
 function debtValueTL(d){
   if(d.cur==='tl')return d.amount;
   if(d.cur==='gram')return d.amount*(S.rates.gram||0);
@@ -439,11 +447,14 @@ function renderOzet(){
 
 function renderVarlik(){
   const el=document.getElementById('v-list');
+  const th=totalHasGold();
+  const hasLine=th>0?'<p class="mini" style="margin-top:0;margin-bottom:6px">Toplam altınınızın has karşılığı: <b style="color:var(--gold-dk)">≈ '+fmt2(th)+' g</b></p>':'';
   if(!S.assets.length){el.innerHTML='<div class="empty"><span class="big">🪙</span>Henüz varlık eklemediniz.<br>Altın, döviz ve nakitlerinizi ekleyin.</div>';return}
-  el.innerHTML=S.assets.map(a=>{
-    const T=ASSET_TYPES[a.type],v=assetValue(a);
+  el.innerHTML=hasLine+S.assets.map(a=>{
+    const T=ASSET_TYPES[a.type],v=assetValue(a),h=hasGrams(a);
     return '<div class="item"><div class="ic '+(T.gold?'gold':'')+'">'+T.ic+'</div>'+
-    '<div class="tx"><b>'+(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+'</small></div>'+
+    '<div class="tx"><b>'+(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+
+    (h>0?' · <span style="color:var(--gold-dk);font-weight:700">≈ '+fmt2(h)+' g has</span>':'')+'</small></div>'+
     '<div class="val"><b class="num">'+fmt(v)+' ₺</b></div>'+
     '<div class="rowbtns"><button class="iconbtn" onclick="openAsset(\''+a.id+'\')" aria-label="Düzenle">✏️</button><button class="iconbtn" onclick="delAsset(\''+a.id+'\')" aria-label="Sil">🗑️</button></div></div>';
   }).join('');
@@ -464,6 +475,7 @@ function renderZekat(){
    '<div class="item"><div class="tx"><b>Borçlar</b></div><div class="val"><b class="num neg">−'+fmt(t.borc)+' ₺</b></div></div>'+
    '<div class="item"><div class="tx"><b>Zekât matrahı</b></div><div class="val"><b class="num">'+fmt(t.net)+' ₺</b></div></div>'+
    '<div class="item"><div class="tx"><b>Nisab (85 gr altın)</b><small>Gram altın: '+(S.rates.gram?fmt2(S.rates.gram)+' ₺':'girilmedi')+'</small></div><div class="val"><b class="num">'+fmt(t.nisab)+' ₺</b></div></div>'+
+   '<div class="item"><div class="tx"><b>Has altın toplamınız</b><small>Nisab: 85 g has altın</small></div><div class="val"><b class="num" style="color:var(--gold-dk)">'+fmt2(totalHasGold())+' g</b></div></div>'+
    '<div style="margin-top:12px"><div class="distbar"><div style="width:'+pct+'%;background:linear-gradient(90deg,var(--green),var(--gold))"></div></div>'+
    '<div class="mini">Nisaba oran: %'+pct.toFixed(0)+'</div></div>'+
    (t.zekat>0

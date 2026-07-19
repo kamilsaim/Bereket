@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.2.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.3.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -22,6 +22,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 ### 🪙 Varlık Takibi
 - Gram, çeyrek, yarım, tam, Cumhuriyet ve Ata altını
 - **Ayarlı ziynet altınları** (22/18/14 ayar) — has karşılığı otomatik hesaplanır
+- Her altın varlığın **has gram karşılığı** listede gösterilir; toplam has altın 85 g nisabla karşılaştırılır
 - Gümüş, Dolar, Euro, TL nakit ve serbest "diğer" varlıklar
 - Tüm varlıklar güncel kurla TL'ye çevrilir, dağılım grafiğiyle gösterilir
 
@@ -71,6 +72,7 @@ Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.3.0** | 19.07.2026 | Altın varlıklarda has karşılığı gösterimi, toplam has altın ve 85 g nisabla karşılaştırma |
 | **v1.2.0** | 19.07.2026 | Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi |
 | **v1.1.0** | 19.07.2026 | Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi |
 | **v1.0.0** | 19.07.2026 | İlk sürüm: varlık takibi, zekât hesabı, borç/alacak takibi, kur çekme, JSON yedekleme |
