@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.3.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.5.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -20,29 +20,32 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 ## ✨ Özellikler
 
 ### 🪙 Varlık Takibi
-- Gram, çeyrek, yarım, tam, Cumhuriyet ve Ata altını
+- Gram (24 ayar/has), **22 ayar gram altın**, çeyrek, yarım, tam, Cumhuriyet ve Ata altını
 - **Ayarlı ziynet altınları** (22/18/14 ayar) — has karşılığı otomatik hesaplanır
-- Her altın varlığın **has gram karşılığı** listede gösterilir; toplam has altın 85 g nisabla karşılaştırılır
-- Gümüş, Dolar, Euro, TL nakit ve serbest "diğer" varlıklar
+- Her altın varlığın **has gram karşılığı** listede gösterilir; toplam has altın 80 g nisabla karşılaştırılır
+- Gümüş, Dolar, Euro, TL nakit (₺ simgesiyle) ve serbest "diğer" varlıklar
 - Tüm varlıklar güncel kurla TL'ye çevrilir, dağılım grafiğiyle gösterilir
 
 ### 🌱 Zekât Hesabı
-- Nisab: **85 gram altın** karşılığı, güncel kurla otomatik
+- Nisab: **80 gram has (24 ayar) altın** karşılığı, güncel kurla otomatik
 - Matrah = varlıklar + alacaklar − borçlar; nisabı aşınca **%2,5 (1/40)** hesaplanır
 - **Kamerî yıl (havl) takibi**: nisaba ulaştığınız tarihi kaydedin, 354 gün dolunca uygulama uyarır
 - Ödediğiniz zekâtları tarihçesiyle kaydedin; **ödenen / kalan** tutar otomatik izlenir, dönem tamamlanınca havl yenilenebilir
 
 ### 🤝 Borç / Alacak
 - TL, Dolar, Euro, **gram/çeyrek/yarım/tam/Cumhuriyet/Ata altını** veya gümüş cinsinden borç ve alacak kaydı
+- **Kısmi (aralıklı) ödeme takibi**: her kayda birden çok ödeme eklenebilir, kalan bakiye otomatik hesaplanır
+- Bir kayda dokununca açılan **kişi kartında** toplam/ödenen/kalan özeti ve tarih sıralı ödeme geçmişi düzenli liste halinde görünür
+- Kayıtları **düzenleme** — kişi, tutar, birim ve vade sonradan değiştirilebilir
 - Vade takibi — geciken kayıtlar kırmızı uyarı alır
 - "Ödendi" işaretleme ve filtreleme
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
 - **Gizlilik modu** 🙈 — tek dokunuşla tüm tutarları gizleyin
-- Kurları tek tuşla internetten çekme veya elle girme
+- **Uygulama her açıldığında kurlar otomatik internetten güncellenir**, sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
 - JSON yedek alma / geri yükleme
-- Sürüm geçmişi (Ayarlar sekmesinde)
+- Silme gibi geri alınamaz işlemler **uygulama içi onay penceresiyle** yapılır (tarayıcı popup'u değil)
 
 ## 📱 Kurulum
 
@@ -72,6 +75,8 @@ Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.5.0** | 20.07.2026 | Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar'dan sürüm geçmişi kaldırıldı, açılışta kurlar otomatik güncelleniyor |
+| **v1.4.0** | 20.07.2026 | Borç/alacaklarda kısmi ödeme takibi ve düzenleme, nisab 80 grama güncellendi, 22 ayar gram altın seçeneği, TL simgesi ikonu, ayarlar sayfası düzeni, mouse ile kaydırma düzeltmesi |
 | **v1.3.0** | 19.07.2026 | Altın varlıklarda has karşılığı gösterimi, toplam has altın ve 85 g nisabla karşılaştırma |
 | **v1.2.0** | 19.07.2026 | Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi |
 | **v1.1.0** | 19.07.2026 | Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi |

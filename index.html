@@ -23,9 +23,9 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%;overflow-x:hidden}
+html{height:100%;overflow-x:hidden;overflow-y:auto}
 body{
-  min-height:100dvh;overflow-x:hidden;
+  min-height:100dvh;overflow-x:hidden;overflow-y:auto;
   font-family:'Manrope',system-ui,sans-serif;background:var(--ivory);color:var(--ink);
   font-size:15px;line-height:1.5;overscroll-behavior-y:contain;
   -webkit-font-smoothing:antialiased;
@@ -160,10 +160,10 @@ nav{
 .tab.on::after{content:"";width:16px;height:3px;border-radius:2px;background:var(--gold);margin-top:1px}
 
 /* ---------- Modal ---------- */
-.overlay{position:fixed;inset:0;background:rgba(20,40,28,.45);z-index:90;display:none;align-items:flex-end;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(20,40,28,.45);z-index:90;display:none;align-items:center;justify-content:center;padding:20px}
 .overlay.open{display:flex}
-.sheet{background:var(--ivory);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(24px + var(--safe-b));max-height:88vh;overflow-y:auto;animation:up .22s ease}
-@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet{background:var(--ivory);width:100%;max-width:480px;border-radius:24px;padding:20px 18px;max-height:85vh;overflow-y:auto;animation:up .22s ease}
+@keyframes up{from{transform:translateY(16px) scale(.98);opacity:.5}to{transform:none;opacity:1}}
 .sheet h3{font-size:20px;color:var(--green);margin-bottom:4px}
 .grab{width:44px;height:4px;border-radius:2px;background:rgba(30,86,49,.2);margin:0 auto 14px}
 
@@ -248,7 +248,7 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
   </div>
   <div class="card">
     <h2>Bilgi <span class="rule"></span></h2>
-    <p class="mini" style="margin-top:0">Nisab miktarı <b>85 gram has altın</b> karşılığı esas alınır. Ayarlı ziynet altınları (22/18/14) has karşılığıyla, darphane altınları (çeyrek, yarım, tam, Cumhuriyet, Ata) güncel piyasa değeriyle hesaba katılır; her birinin has gram içeriği varlık listesinde gösterilir. Nisaba ulaşan ve üzerinden bir kamerî yıl geçen net servetin <b>%2,5</b>'i (1/40) zekât olarak verilir. Borçlar servetten düşülür. Kesin hüküm için din görevlisine veya Diyanet'e danışınız.</p>
+    <p class="mini" style="margin-top:0">Nisab miktarı <b>80 gram has (24 ayar) altın</b> karşılığı esas alınır. Ayarlı ziynet altınları (22/18/14) has karşılığıyla, darphane altınları (çeyrek, yarım, tam, Cumhuriyet, Ata) güncel piyasa değeriyle hesaba katılır; her birinin has gram içeriği varlık listesinde gösterilir. Nisaba ulaşan ve üzerinden bir kamerî yıl geçen net servetin <b>%2,5</b>'i (1/40) zekât olarak verilir. Borçlar servetten düşülür. Kesin hüküm için din görevlisine veya Diyanet'e danışınız.</p>
   </div>
 </section>
 
@@ -272,6 +272,10 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
 
 <!-- ═══════════ AYARLAR ═══════════ -->
 <section class="page" id="p-ayar">
+  <div class="card" style="text-align:center">
+    <img src="" data-logo alt="" style="width:64px;opacity:.9">
+    <p class="mini">Bereket <span id="a-ver"></span> · Veriler yalnızca bu cihazda saklanır.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
+  </div>
   <div class="card">
     <h2>Kurlar <span class="rule"></span></h2>
     <p class="mini" style="margin-top:0">Birim fiyatları TL cinsinden girin veya internetten çekin.</p>
@@ -285,14 +289,6 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <button class="btn ghost" onclick="document.getElementById('importfile').click()">⬆ Yedekten geri yükle</button>
     <input type="file" id="importfile" accept=".json" hidden onchange="importData(this)">
     <button class="btn danger" onclick="wipeData()">Tüm verileri sil</button>
-  </div>
-  <div class="card">
-    <h2>Sürüm Geçmişi <span class="rule"></span></h2>
-    <div id="a-changelog"></div>
-  </div>
-  <div class="card" style="text-align:center">
-    <img src="" data-logo alt="" style="width:64px;opacity:.9">
-    <p class="mini">Bereket <span id="a-ver"></span> · Veriler yalnızca bu cihazda saklanır.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
   </div>
 </section>
 
@@ -317,7 +313,8 @@ const LOGO='data:image/webp;base64,UklGRkh9AABXRUJQVlA4WAoAAAAQAAAABAEAPwEAQUxQS
 /* ═══════════ VERİ ═══════════ */
 const KEY='bereket_v1';
 const ASSET_TYPES={
-  gram:  {name:'Gram Altın',   unit:'gr',   ic:'🪙', gold:true, hasGr:1},
+  gram:  {name:'Gram Altın (24 Ayar/Has)',unit:'gr', ic:'🪙', gold:true, hasGr:1},
+  gram22:{name:'Gram Altın (22 Ayar)',unit:'gr', ic:'🪙', gold:true, factor:0.916,base:'gram'},
   ceyrek:{name:'Çeyrek Altın', unit:'adet', ic:'🪙', gold:true, hasGr:1.607},
   yarim: {name:'Yarım Altın',  unit:'adet', ic:'🪙', gold:true, hasGr:3.215},
   tam:   {name:'Tam Altın',    unit:'adet', ic:'🪙', gold:true, hasGr:6.43},
@@ -329,11 +326,14 @@ const ASSET_TYPES={
   gumus: {name:'Gümüş',        unit:'gr',   ic:'⚪', gold:false},
   usd:   {name:'Dolar (USD)',  unit:'$',    ic:'💵', gold:false},
   eur:   {name:'Euro (EUR)',   unit:'€',    ic:'💶', gold:false},
-  tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'💰', gold:false},
+  tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.5.0';
 const CHANGELOG=[
+ {v:'1.5.0',d:'20.07.2026',n:'Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar sayfasından sürüm geçmişi kaldırıldı, uygulama açılışında kurlar otomatik güncelleniyor'},
+ {v:'1.4.1',d:'20.07.2026',n:'Borç/alacak kişi kartı: ödeme geçmişi düzenli liste halinde ayrı ekranda gösteriliyor, liste görünümü sadeleşti; mouse tekerleği kaydırması JS ile garanti altına alındı'},
+ {v:'1.4.0',d:'20.07.2026',n:'Borç/alacaklarda kısmi ödeme takibi ve düzenleme, nisab 80 grama güncellendi, 22 ayar gram altın seçeneği, TL simgesi ikonu, ayarlar sayfası düzeni, mouse ile kaydırma düzeltmesi'},
  {v:'1.3.0',d:'19.07.2026',n:'Altın varlıklarda has karşılığı gösterimi (çeyrek 1,607 g · yarım 3,215 g · tam 6,43 g · Cumhuriyet/Ata 6,615 g), toplam has altın satırı, zekât sayfasında 85 g nisabla has karşılaştırması'},
  {v:'1.2.0',d:'19.07.2026',n:'Borç/alacakta tüm altın çeşitleri ve gümüş, zekâtta ödenen/kalan takibi, Chrome sayfa uzaması düzeltmesi'},
  {v:'1.1.0',d:'19.07.2026',n:'Kamerî yıl (havl) takibi, ayarlı ziynet altınları (22/18/14), Ata altın, gizlilik modu, servet geçmişi grafiği, sürüm geçmişi'},
@@ -375,16 +375,18 @@ function hasGrams(a){
   return 0;
 }
 function totalHasGold(){return S.assets.reduce((s,a)=>s+hasGrams(a),0)}
+function debtPaid(d){return (d.payments||[]).reduce((s,p)=>s+p.amount,0)}
+function debtRemaining(d){return Math.max(0,d.amount-debtPaid(d))}
 function debtValueTL(d){
-  if(d.cur==='tl')return d.amount;
-  if(d.cur==='gram')return d.amount*(S.rates.gram||0);
-  return d.amount*(S.rates[d.cur]||0);
+  const rem=debtRemaining(d);
+  if(d.cur==='tl')return rem;
+  return rem*(S.rates[d.cur]||0);
 }
 function totals(){
   const varlik=S.assets.reduce((s,a)=>s+assetValue(a),0);
   let borc=0,alacak=0;
   S.debts.forEach(d=>{if(d.done)return;const v=debtValueTL(d);d.dir==='borc'?borc+=v:alacak+=v});
-  const nisab=85*(S.rates.gram||0);
+  const nisab=NISAB_GR*(S.rates.gram||0);
   const zbase=varlik+alacak-borc;           // zekât matrahı
   const zekat=(nisab>0&&zbase>=nisab)?zbase*0.025:0;
   return {varlik,borc,alacak,net:zbase,nisab,zekat};
@@ -474,8 +476,8 @@ function renderZekat(){
    '<div class="item"><div class="tx"><b>Alacaklar</b></div><div class="val"><b class="num pos">+'+fmt(t.alacak)+' ₺</b></div></div>'+
    '<div class="item"><div class="tx"><b>Borçlar</b></div><div class="val"><b class="num neg">−'+fmt(t.borc)+' ₺</b></div></div>'+
    '<div class="item"><div class="tx"><b>Zekât matrahı</b></div><div class="val"><b class="num">'+fmt(t.net)+' ₺</b></div></div>'+
-   '<div class="item"><div class="tx"><b>Nisab (85 gr altın)</b><small>Gram altın: '+(S.rates.gram?fmt2(S.rates.gram)+' ₺':'girilmedi')+'</small></div><div class="val"><b class="num">'+fmt(t.nisab)+' ₺</b></div></div>'+
-   '<div class="item"><div class="tx"><b>Has altın toplamınız</b><small>Nisab: 85 g has altın</small></div><div class="val"><b class="num" style="color:var(--gold-dk)">'+fmt2(totalHasGold())+' g</b></div></div>'+
+   '<div class="item"><div class="tx"><b>Nisab (80 gr altın)</b><small>Gram altın: '+(S.rates.gram?fmt2(S.rates.gram)+' ₺':'girilmedi')+'</small></div><div class="val"><b class="num">'+fmt(t.nisab)+' ₺</b></div></div>'+
+   '<div class="item"><div class="tx"><b>Has altın toplamınız</b><small>Nisab: 80 g has altın</small></div><div class="val"><b class="num" style="color:var(--gold-dk)">'+fmt2(totalHasGold())+' g</b></div></div>'+
    '<div style="margin-top:12px"><div class="distbar"><div style="width:'+pct+'%;background:linear-gradient(90deg,var(--green),var(--gold))"></div></div>'+
    '<div class="mini">Nisaba oran: %'+pct.toFixed(0)+'</div></div>'+
    (t.zekat>0
@@ -511,6 +513,7 @@ function renderSpark(){
 }
 
 const HAVL_DAYS=354;
+const NISAB_GR=80;
 function havlDue(){if(!S.havl)return null;const d=new Date(S.havl+'T00:00:00');d.setDate(d.getDate()+HAVL_DAYS);return d.toISOString().slice(0,10)}
 function renderHavl(){
   const el=document.getElementById('z-havl');
@@ -554,12 +557,12 @@ function renderBorc(){
   let list=S.debts.slice().sort((a,b)=>(a.done-b.done)||((a.due||'9999').localeCompare(b.due||'9999')));
   if(debtFilter!=='all')list=list.filter(d=>d.dir===debtFilter);
   if(!list.length){el.innerHTML='<div class="empty"><span class="big">🤝</span>Kayıt yok.</div>';return}
-  const curU={tl:'₺',usd:'$',eur:'€',gram:'gr altın',ceyrek:'çeyrek',yarim:'yarım',tam:'tam altın',cumhuriyet:'Cumhuriyet',ata:'Ata',gumus:'gr gümüş'};
+  const curU=CUR_UNITS;
   el.innerHTML=list.map(d=>{
-    const v=debtValueTL(d),isB=d.dir==='borc';
+    const v=debtValueTL(d),isB=d.dir==='borc',rem=debtRemaining(d),paid=debtPaid(d);
     const overdue=!d.done&&d.due&&d.due<new Date().toISOString().slice(0,10);
-    return '<div class="item'+(d.done?' done':'')+'"><div class="ic '+(isB?'red':'')+'">'+(isB?'📤':'📥')+'</div>'+
-    '<div class="tx"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · '+fmt2(d.amount)+' '+curU[d.cur]+
+    return '<div class="item'+(d.done?' done':'')+'"><div class="ic '+(isB?'red':'')+'" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')">'+(isB?'📤':'📥')+'</div>'+
+    '<div class="tx" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · '+fmt2(rem)+' '+curU[d.cur]+(paid>0?' (kalan, '+d.payments.length+' ödeme)':'')+
       (d.due?' · vade '+trDate(d.due):'')+(overdue?' · <span style="color:var(--red);font-weight:800">gecikti!</span>':'')+'</small></div>'+
     '<div class="val"><b class="num '+(isB?'neg':'pos')+'">'+(isB?'−':'+')+fmt(v)+' ₺</b></div>'+
     '<div class="rowbtns"><button class="iconbtn" onclick="toggleDebt(\''+d.id+'\')" aria-label="Ödendi">'+(d.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delDebt(\''+d.id+'\')" aria-label="Sil">🗑️</button></div></div>';
@@ -570,8 +573,6 @@ function renderAyar(){
   document.getElementById('a-kurform').innerHTML=Object.entries(RATE_LABELS).map(([k,l])=>
     '<label>'+l+'</label><input type="number" step="0.01" inputmode="decimal" id="rate-'+k+'" value="'+(S.rates[k]||'')+'" placeholder="0,00">').join('');
   document.getElementById('a-ver').textContent='v'+APP_VERSION;
-  document.getElementById('a-changelog').innerHTML=CHANGELOG.map(c=>
-    '<div class="item"><div class="tx"><b>v'+c.v+' <span class="pill">'+c.d+'</span></b><small>'+c.n+'</small></div></div>').join('');
 }
 
 /* ═══════════ VARLIK CRUD ═══════════ */
@@ -593,28 +594,32 @@ function saveAsset(id){
   save();closeSheet();renderAll();toast('Varlık kaydedildi ✓');
   if(!S.rates[type]&&type!=='tl'&&type!=='diger')toast('Bu varlık için kur girmeyi unutmayın');
 }
-function delAsset(id){if(!confirm('Bu varlık silinsin mi?'))return;S.assets=S.assets.filter(a=>a.id!==id);save();renderAll()}
+function delAsset(id){openConfirm('Bu varlık silinsin mi?',()=>{S.assets=S.assets.filter(a=>a.id!==id);save();renderAll()})}
 
 /* ═══════════ BORÇ CRUD ═══════════ */
-function openDebt(){
-  sheet(`<h3>Borç / Alacak Ekle</h3>
+const CUR_OPTS='<option value="tl">TL ₺</option><option value="usd">Dolar $</option><option value="eur">Euro €</option><option value="gram">Gram Altın</option><option value="ceyrek">Çeyrek Altın</option><option value="yarim">Yarım Altın</option><option value="tam">Tam Altın</option><option value="cumhuriyet">Cumhuriyet Altını</option><option value="ata">Ata Altın</option><option value="gumus">Gümüş (gr)</option>';
+const CUR_UNITS={tl:'₺',usd:'$',eur:'€',gram:'gr altın',ceyrek:'çeyrek',yarim:'yarım',tam:'tam altın',cumhuriyet:'Cumhuriyet',ata:'Ata',gumus:'gr gümüş'};
+function openDebt(id){
+  const d=id?S.debts.find(x=>x.id===id):null;
+  sheet(`<h3>${d?'Kaydı Düzenle':'Borç / Alacak Ekle'}</h3>
   <label>Tür</label>
   <div class="seg" id="f-dir">
-    <button class="on" data-v="borc" type="button">Borcum var 📤</button>
-    <button data-v="alacak" type="button">Alacağım var 📥</button>
+    <button class="${!d||d.dir==='borc'?'on':''}" data-v="borc" type="button">Borcum var 📤</button>
+    <button class="${d&&d.dir==='alacak'?'on':''}" data-v="alacak" type="button">Alacağım var 📥</button>
   </div>
-  <label>Kişi / Kurum</label><input id="f-who" placeholder="örn. Ahmet abi">
+  <label>Kişi / Kurum</label><input id="f-who" value="${d?esc(d.who):''}" placeholder="örn. Ahmet abi">
   <div class="frow">
-    <div><label>Tutar</label><input type="number" step="0.01" inputmode="decimal" id="f-amt" placeholder="0"></div>
-    <div><label>Birim</label><select id="f-cur"><option value="tl">TL ₺</option><option value="usd">Dolar $</option><option value="eur">Euro €</option><option value="gram">Gram Altın</option><option value="ceyrek">Çeyrek Altın</option><option value="yarim">Yarım Altın</option><option value="tam">Tam Altın</option><option value="cumhuriyet">Cumhuriyet Altını</option><option value="ata">Ata Altın</option><option value="gumus">Gümüş (gr)</option></select></div>
+    <div><label>Tutar</label><input type="number" step="0.01" inputmode="decimal" id="f-amt" value="${d?d.amount:''}" placeholder="0"></div>
+    <div><label>Birim</label><select id="f-cur">${CUR_OPTS}</select></div>
   </div>
-  <label>Vade (isteğe bağlı)</label><input type="date" id="f-due">
-  <button class="btn primary" onclick="saveDebt()">Ekle</button>`);
+  <label>Vade (isteğe bağlı)</label><input type="date" id="f-due" value="${d&&d.due?d.due:''}">
+  <button class="btn primary" onclick="saveDebt('${d?d.id:''}')">${d?'Kaydet':'Ekle'}</button>`);
   document.querySelectorAll('#f-dir button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#f-dir button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   });
+  if(d)document.getElementById('f-cur').value=d.cur;
 }
-function saveDebt(){
+function saveDebt(id){
   const dir=document.querySelector('#f-dir .on').dataset.v;
   const who=document.getElementById('f-who').value.trim();
   const amount=parseFloat(document.getElementById('f-amt').value);
@@ -622,11 +627,58 @@ function saveDebt(){
   const due=document.getElementById('f-due').value||null;
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
-  S.debts.push({id:uid(),dir,who,amount,cur,due,done:false});
-  save();closeSheet();renderAll();toast('Kayıt eklendi ✓');
+  if(id){const d=S.debts.find(x=>x.id===id);Object.assign(d,{dir,who,amount,cur,due});d.done=debtRemaining(d)<=0;}
+  else S.debts.push({id:uid(),dir,who,amount,cur,due,done:false,payments:[]});
+  save();closeSheet();renderAll();toast(id?'Kayıt güncellendi ✓':'Kayıt eklendi ✓');
 }
 function toggleDebt(id){const d=S.debts.find(x=>x.id===id);d.done=!d.done;save();renderAll();toast(d.done?'Kapatıldı ✓':'Yeniden açıldı')}
-function delDebt(id){if(!confirm('Bu kayıt silinsin mi?'))return;S.debts=S.debts.filter(d=>d.id!==id);save();renderAll()}
+function delDebt(id){openConfirm('Bu kayıt silinsin mi?',()=>{S.debts=S.debts.filter(d=>d.id!==id);save();renderAll()})}
+
+function openDebtCard(id){
+  const d=S.debts.find(x=>x.id===id);if(!d)return;
+  const isB=d.dir==='borc',rem=debtRemaining(d),paid=debtPaid(d);
+  const overdue=!d.done&&d.due&&d.due<new Date().toISOString().slice(0,10);
+  sheet(`<h3>${esc(d.who)}</h3>
+  <p class="mini" style="margin-top:0">${isB?'Borcum':'Alacağım'} · Toplam: <b class="num">${fmt2(d.amount)} ${CUR_UNITS[d.cur]}</b>${d.due?' · Vade: <b>'+trDate(d.due)+'</b>':''}${overdue?' · <span style="color:var(--red);font-weight:800">gecikti!</span>':''}</p>
+  <div class="grid2">
+    <div class="stat"><div class="eyebrow">Ödenen</div><div class="v num">${fmt2(paid)} ${CUR_UNITS[d.cur]}</div></div>
+    <div class="stat ${isB?'red':'green'}"><div class="eyebrow">Kalan</div><div class="v num ${isB?'neg':'pos'}">${fmt2(rem)} ${CUR_UNITS[d.cur]}</div></div>
+  </div>
+  <label>Ödeme Geçmişi</label>
+  ${(d.payments&&d.payments.length)?d.payments.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(p=>
+    '<div class="item"><div class="tx"><b>'+trDate(p.date)+'</b></div><div class="val"><b class="num">'+fmt2(p.amount)+' '+CUR_UNITS[d.cur]+'</b></div>'+
+    '<button class="iconbtn" onclick="delPayment(\''+d.id+'\',\''+p.id+'\')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz ödeme kaydı yok.</p>'}
+  <button class="btn gold" onclick="openPayment('${d.id}')">💵 Ödeme Ekle</button>
+  <button class="btn ghost" onclick="openDebt('${d.id}')">✏️ Kaydı Düzenle</button>`);
+}
+function openPayment(id){
+  const d=S.debts.find(x=>x.id===id);if(!d)return;
+  const rem=debtRemaining(d);
+  sheet(`<h3>Ödeme Ekle</h3>
+  <p class="mini" style="margin-top:0">${esc(d.who)} · Kalan: <b class="num">${fmt2(rem)} ${CUR_UNITS[d.cur]}</b></p>
+  <label>Ödeme Tutarı</label><input type="number" step="0.01" inputmode="decimal" id="f-pamt" value="${rem?Math.round(rem*100)/100:''}" placeholder="0">
+  <label>Tarih</label><input type="date" id="f-pdate" value="${new Date().toISOString().slice(0,10)}">
+  <button class="btn primary" onclick="savePayment('${d.id}')">Ödemeyi Kaydet</button>
+  <button class="btn ghost" onclick="openDebtCard('${d.id}')">◀ Geri</button>`);
+}
+function savePayment(id){
+  const d=S.debts.find(x=>x.id===id);if(!d)return;
+  const amount=parseFloat(document.getElementById('f-pamt').value);
+  const date=document.getElementById('f-pdate').value;
+  if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(!d.payments)d.payments=[];
+  d.payments.push({id:uid(),amount,date});
+  if(debtRemaining(d)<=0)d.done=true;
+  save();renderAll();openDebtCard(id);toast('Ödeme kaydedildi ✓');
+}
+function delPayment(debtId,paymentId){
+  openConfirm('Bu ödeme kaydı silinsin mi?',()=>{
+  const d=S.debts.find(x=>x.id===debtId);if(!d)return;
+  d.payments=(d.payments||[]).filter(p=>p.id!==paymentId);
+  d.done=debtRemaining(d)<=0;
+  save();renderAll();openDebtCard(debtId);
+  });
+}
 
 /* ═══════════ ZEKÂT CRUD ═══════════ */
 function openZekat(){
@@ -645,10 +697,16 @@ function saveZekat(){
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
   S.zakat.push({id:uid(),amount,date,note});
   const kalan=Math.max(0,totals().zekat-zakatPaid());
-  if(S.havl&&kalan<=0&&confirm('Bu dönemin zekâtı tamamlandı. Kamerî yıl başlangıcı bu ödeme tarihine yenilensin mi?'))S.havl=date;
-  save();closeSheet();renderAll();toast('Allah kabul etsin 🤲');
+  const finish=(renewHavl)=>{if(renewHavl)S.havl=date;save();closeSheet();renderAll();toast('Allah kabul etsin 🤲')};
+  if(S.havl&&kalan<=0){
+    window._finishZekat=finish;
+    sheet(`<h3>Kamerî Yıl Yenilensin mi?</h3>
+    <p class="mini" style="margin-top:0">Bu dönemin zekâtı tamamlandı. Kamerî yıl başlangıcı bu ödeme tarihine yenilensin mi?</p>
+    <button class="btn primary" onclick="_finishZekat(true)">Evet, Yenile</button>
+    <button class="btn ghost" onclick="_finishZekat(false)">Hayır</button>`);
+  } else finish(false);
 }
-function delZekat(id){if(!confirm('Bu kayıt silinsin mi?'))return;S.zakat=S.zakat.filter(z=>z.id!==id);save();renderAll()}
+function delZekat(id){openConfirm('Bu kayıt silinsin mi?',()=>{S.zakat=S.zakat.filter(z=>z.id!==id);save();renderAll()})}
 
 /* ═══════════ KURLAR ═══════════ */
 function saveRatesForm(){
@@ -694,9 +752,9 @@ function importData(inp){
   r.readAsText(f);inp.value='';
 }
 function wipeData(){
-  if(!confirm('TÜM veriler silinecek. Emin misiniz?'))return;
-  if(!confirm('Bu işlem geri alınamaz. Son kez: silinsin mi?'))return;
-  localStorage.removeItem(KEY);S=load();renderAll();toast('Veriler silindi');
+  openConfirm('TÜM veriler kalıcı olarak silinecek. Bu işlem geri alınamaz.',()=>{
+    localStorage.removeItem(KEY);S=load();renderAll();toast('Veriler silindi');
+  });
 }
 
 /* ═══════════ YARDIMCI ═══════════ */
@@ -704,6 +762,23 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 function trDate(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'.'+m+'.'+y}
 function sheet(html){document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;document.getElementById('overlay').classList.add('open');document.body.style.overflow='hidden'}
 function closeSheet(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow=''}
+
+let _confirmCb=null;
+function openConfirm(msg,cb){
+  _confirmCb=cb;
+  sheet(`<h3>Emin misiniz?</h3><p class="mini" style="margin-top:0">${msg}</p>
+  <button class="btn danger" onclick="runConfirm()">Evet, Sil</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+function runConfirm(){const cb=_confirmCb;_confirmCb=null;closeSheet();if(cb)cb();}
+
+/* Bazı ortamlarda (webview vb.) fare tekerleği yerel kaydırmayı tetiklemiyor —
+   burada elle kaydırma uygulayarak garanti altına alıyoruz. */
+document.addEventListener('wheel',function(e){
+  if(e.target.closest('.sheet'))return; // alt panel kendi kaydırmasını yönetsin
+  e.preventDefault();
+  window.scrollBy(0,e.deltaY);
+},{passive:false});
 
 /* Sekmeler */
 document.querySelectorAll('nav .tab').forEach(t=>t.onclick=()=>{
@@ -720,6 +795,7 @@ document.querySelectorAll('#b-filter button').forEach(b=>b.onclick=()=>{
 
 document.getElementById('eyebtn').textContent=S.hide?'🙈':'👁️';
 renderAll();
+fetchRates();
 </script>
 </body>
 </html>
