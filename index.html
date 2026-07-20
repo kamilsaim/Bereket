@@ -344,8 +344,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.9.0';
 const CHANGELOG=[
+ {v:'1.9.0',d:'20.07.2026',n:'Varlıklar sekmesine, hangi türden toplam ne kadar varlığınız olduğunu gösteren döküm eklendi'},
  {v:'1.8.0',d:'20.07.2026',n:'Borç/Alacak sekmesindeki toplam kartlarına, hangi para biriminden/üründen ne kadar borç veya alacak olduğunu gösteren döküm eklendi'},
  {v:'1.7.1',d:'20.07.2026',n:'Borç/alacak listesinde satır sadeleşti: sadece kalan tutar kalın gösteriliyor, vade ve ödeme sayısı bilgisi kart detayına bırakıldı'},
  {v:'1.7.0',d:'20.07.2026',n:'Borç/Alacak sekmesine "Emanetler" bölümü eklendi: zekâta dahil olmayan, bende duran veya bendeki emanet para/altınları kısmi iade takibiyle kaydedebilirsiniz'},
@@ -466,12 +467,19 @@ function renderOzet(){
   renderSpark();
 }
 
+function assetBreakdown(){
+  const sums={};
+  S.assets.forEach(a=>{sums[a.type]=(sums[a.type]||0)+a.qty});
+  return Object.entries(sums).map(([type,qty])=>{const T=ASSET_TYPES[type];return fmt2(qty)+' '+T.unit+' '+T.name.split('(')[0].trim()}).join(' · ');
+}
 function renderVarlik(){
   const el=document.getElementById('v-list');
   const th=totalHasGold();
   const hasLine=th>0?'<p class="mini" style="margin-top:0;margin-bottom:6px">Toplam altınınızın has karşılığı: <b style="color:var(--gold-dk)">≈ '+fmt2(th)+' g</b></p>':'';
+  const breakdown=assetBreakdown();
+  const breakLine=breakdown?'<p class="mini" style="margin-top:0;margin-bottom:6px">'+breakdown+'</p>':'';
   if(!S.assets.length){el.innerHTML='<div class="empty"><span class="big">🪙</span>Henüz varlık eklemediniz.<br>Altın, döviz ve nakitlerinizi ekleyin.</div>';return}
-  el.innerHTML=hasLine+S.assets.map(a=>{
+  el.innerHTML=breakLine+hasLine+S.assets.map(a=>{
     const T=ASSET_TYPES[a.type],v=assetValue(a),h=hasGrams(a);
     return '<div class="item"><div class="ic '+(T.gold?'gold':'')+'">'+T.ic+'</div>'+
     '<div class="tx"><b>'+(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+

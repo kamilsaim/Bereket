@@ -8,7 +8,7 @@ Bu dosya, projede çalışacak Claude oturumları için bağlam sağlar.
 - Dosya: `index.html` (HTML + CSS + JS tek dosyada, logo base64 gömülü) — GitHub Pages bu dosyayı otomatik olarak canlıya açar, **her zaman bu dosya düzenlenir**
 - Dil: Tamamen **Türkçe** arayüz
 - Dağıtım: GitHub Pages (statik)
-- Güncel sürüm: **v1.8.0** — sürüm sabiti kodda `APP_VERSION`, geçmiş `CHANGELOG` dizisinde
+- Güncel sürüm: **v1.9.0** — sürüm sabiti kodda `APP_VERSION`, geçmiş `CHANGELOG` dizisinde
 
 ## Kurallar (her düzenlemede uyulacak)
 1. **Her değişiklikte sürüm artır**: `APP_VERSION` güncellenir, `CHANGELOG` dizisine yeni satır eklenir (küçük düzeltme = patch, yeni özellik = minor). `CHANGELOG` dizisi Ayarlar arayüzünde artık gösterilmiyor (kaldırıldı) ama iç kayıt olarak tutulmaya devam eder.
@@ -35,6 +35,7 @@ Bu dosya, projede çalışacak Claude oturumları için bağlam sağlar.
 - **Borç/alacak düzenleme**: `openDebt(id)` hem ekleme hem düzenleme için kullanılır (id verilirse form doldurulur, `saveDebt(id)` günceller).
 - **Borç/alacak liste satırı**: sadece "Borcum/Alacağım · **kalan tutar**" gösterilir; vade ve ödeme sayısı bilgisi kaldırıldı, bunlar `openDebtCard(id)` kişi kartında ayrıntılı gösterilmeye devam eder.
 - **Borç/alacak toplam kartları döküm**: `curBreakdown(dir)` açık (done=false) kayıtların kalan bakiyesini `cur`'a göre gruplayıp toplar, "Alacak/Borç Toplamı" kartlarının altında `b-alacak-detay`/`b-borc-detay` içinde "500 $ · 3 çeyrek" biçiminde gösterir.
+- **Varlık türü dökümü**: `assetBreakdown()` tüm varlıkları `type`'a göre gruplayıp `qty` toplar, Varlıklar sekmesinde liste üstünde "10 gr Gram Altın · 3 adet Çeyrek Altın" biçiminde gösterir (`renderVarlik()` içinde `breakLine`).
 - **Emanetler**: `trusts[]` yapısal olarak `debts[]` ile aynıdır (`debtPaid`/`debtRemaining`/`debtValueTL` fonksiyonları ortak kullanılır), tek fark `dir`in `'bende'` (emanet bende duruyor) / `'onda'` (benim emanetim onda duruyor) olması. Borç sekmesinde ayrı "Emanetler" kartında listelenir (`renderTrusts()`), kendi CRUD seti vardır (`openTrust`, `saveTrust`, `toggleTrust`, `delTrust`, `openTrustCard`, `openTrustPayment`, `saveTrustPayment`, `delTrustPayment`). **`totals()` hiçbir emanet tutarını hesaba katmaz** — zekât matrahına ve net servete tamamen dahil değildir, sadece takip amaçlıdır.
 - **Kur çekme**: `fetchRates()` → `https://finans.truncgil.com/v4/today.json` (ücretsiz, anahtarsız). Hata durumunda elle giriş her zaman mümkün. Uygulama her açılışta `fetchRates()`'i otomatik çağırır ve sonucu toast ile bildirir.
 - **Render**: sekme başına `renderX()` fonksiyonları, `renderAll()` hepsini çağırır. Modal `sheet(html)` ile **ortalanmış** bir pencere olarak açılır (dip yapışık değil). Silme gibi geri alınamaz işlemler native `confirm()` yerine `openConfirm(msg,onYesCb)` ile uygulama içi onay penceresi kullanır.
