@@ -170,6 +170,10 @@ nav{
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(100px + var(--safe-b));background:var(--green-dk);color:#fff;padding:10px 18px;border-radius:30px;font-size:13.5px;font-weight:600;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap}
 .toast.show{opacity:1}
 .pill{display:inline-block;background:var(--gold-lt);color:var(--gold-dk);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.chiprow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green-dk);font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:20px}
+.chip b{font-weight:800;color:var(--ink)}
+.chip .ic{font-size:14px}
 details.kurbox{margin-top:8px}
 details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font-size:13.5px;padding:6px 0}
 </style>
@@ -344,8 +348,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.9.0';
+const APP_VERSION='1.9.1';
 const CHANGELOG=[
+ {v:'1.9.1',d:'20.07.2026',n:'Varlık türü dökümü rozet (chip) tasarımıyla daha okunaklı hale getirildi'},
  {v:'1.9.0',d:'20.07.2026',n:'Varlıklar sekmesine, hangi türden toplam ne kadar varlığınız olduğunu gösteren döküm eklendi'},
  {v:'1.8.0',d:'20.07.2026',n:'Borç/Alacak sekmesindeki toplam kartlarına, hangi para biriminden/üründen ne kadar borç veya alacak olduğunu gösteren döküm eklendi'},
  {v:'1.7.1',d:'20.07.2026',n:'Borç/alacak listesinde satır sadeleşti: sadece kalan tutar kalın gösteriliyor, vade ve ödeme sayısı bilgisi kart detayına bırakıldı'},
@@ -470,14 +475,16 @@ function renderOzet(){
 function assetBreakdown(){
   const sums={};
   S.assets.forEach(a=>{sums[a.type]=(sums[a.type]||0)+a.qty});
-  return Object.entries(sums).map(([type,qty])=>{const T=ASSET_TYPES[type];return fmt2(qty)+' '+T.unit+' '+T.name.split('(')[0].trim()}).join(' · ');
+  return '<div class="chiprow">'+Object.entries(sums).map(([type,qty])=>{
+    const T=ASSET_TYPES[type];
+    return '<span class="chip"><span class="ic">'+T.ic+'</span>'+T.name.split('(')[0].trim()+': <b>'+fmt2(qty)+' '+T.unit+'</b></span>';
+  }).join('')+'</div>';
 }
 function renderVarlik(){
   const el=document.getElementById('v-list');
   const th=totalHasGold();
   const hasLine=th>0?'<p class="mini" style="margin-top:0;margin-bottom:6px">Toplam altınınızın has karşılığı: <b style="color:var(--gold-dk)">≈ '+fmt2(th)+' g</b></p>':'';
-  const breakdown=assetBreakdown();
-  const breakLine=breakdown?'<p class="mini" style="margin-top:0;margin-bottom:6px">'+breakdown+'</p>':'';
+  const breakLine=S.assets.length?assetBreakdown():'';
   if(!S.assets.length){el.innerHTML='<div class="empty"><span class="big">🪙</span>Henüz varlık eklemediniz.<br>Altın, döviz ve nakitlerinizi ekleyin.</div>';return}
   el.innerHTML=breakLine+hasLine+S.assets.map(a=>{
     const T=ASSET_TYPES[a.type],v=assetValue(a),h=hasGrams(a);
