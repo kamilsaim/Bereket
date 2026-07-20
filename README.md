@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.6.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.7.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -39,6 +39,11 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Kayıtları **düzenleme** — kişi, tutar, birim ve vade sonradan değiştirilebilir
 - Vade takibi — geciken kayıtlar kırmızı uyarı alır
 - "Ödendi" işaretleme ve filtreleme
+
+### 🔒 Emanetler
+- Zekâta dahil olmayan, sadece takip amaçlı **bende duran** veya **bendeki (onda duran)** emanet para/altın kayıtları
+- Borç/alacak toplamlarına, zekât matrahına ve net servete **hiç dahil edilmez**
+- Kısmi iade takibi: her kayda birden çok iade eklenebilir, kalan bakiye otomatik hesaplanır
 
 ### ☁️ Bulut Yedekleme (isteğe bağlı)
 - Google ile giriş yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz
@@ -85,6 +90,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.7.0** | 20.07.2026 | Borç/Alacak sekmesinde "Emanetler" bölümü: zekâta dahil olmayan emanet para/altın kayıtları, kısmi iade takibiyle |
 | **v1.6.0** | 20.07.2026 | İsteğe bağlı bulut yedekleme: Google ile giriş, Supabase üzerinde senkron |
 | **v1.5.0** | 20.07.2026 | Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar'dan sürüm geçmişi kaldırıldı, açılışta kurlar otomatik güncelleniyor |
 | **v1.4.0** | 20.07.2026 | Borç/alacaklarda kısmi ödeme takibi ve düzenleme, nisab 80 grama güncellendi, 22 ayar gram altın seçeneği, TL simgesi ikonu, ayarlar sayfası düzeni, mouse ile kaydırma düzeltmesi |
