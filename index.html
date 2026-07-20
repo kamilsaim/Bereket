@@ -268,6 +268,12 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <div id="b-list" style="margin-top:6px"></div>
     <button class="btn primary" onclick="openDebt()">＋ Borç / Alacak Ekle</button>
   </div>
+  <div class="card">
+    <h2>Emanetler <span class="rule"></span></h2>
+    <p class="mini" style="margin-top:0">Zekâta dahil olmayan, sadece bende/bendeki emanet para veya altınlar. Bu tutarlar zekât matrahına ve net servete katılmaz.</p>
+    <div id="t-list" style="margin-top:6px"></div>
+    <button class="btn ghost" onclick="openTrust()">＋ Emanet Ekle</button>
+  </div>
 </section>
 
 <!-- ═══════════ AYARLAR ═══════════ -->
@@ -338,8 +344,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const CHANGELOG=[
+ {v:'1.7.0',d:'20.07.2026',n:'Borç/Alacak sekmesine "Emanetler" bölümü eklendi: zekâta dahil olmayan, bende duran veya bendeki emanet para/altınları kısmi iade takibiyle kaydedebilirsiniz'},
  {v:'1.6.0',d:'20.07.2026',n:'İsteğe bağlı bulut yedekleme: Google ile giriş yapıp verileri Supabase üzerinde saklama, çoklu cihaz senkronu (buluta yükle / buluttan geri yükle)'},
  {v:'1.5.0',d:'20.07.2026',n:'Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar sayfasından sürüm geçmişi kaldırıldı, uygulama açılışında kurlar otomatik güncelleniyor'},
  {v:'1.4.1',d:'20.07.2026',n:'Borç/alacak kişi kartı: ödeme geçmişi düzenli liste halinde ayrı ekranda gösteriliyor, liste görünümü sadeleşti; mouse tekerleği kaydırması JS ile garanti altına alındı'},
@@ -353,7 +360,7 @@ const RATE_LABELS={gram:'Gram Altın (₺)',ceyrek:'Çeyrek Altın (₺)',yarim:
 const DIST_COLORS={gold:'#C9A227',gumus:'#9aa5ad',usd:'#3d7a52',eur:'#1E5631',tl:'#7fb08f',diger:'#d6c690'};
 
 let S=load();
-function defaults(){return {assets:[],debts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,havl:null,history:[],hide:false}}
+function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,havl:null,history:[],hide:false}}
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){const base=defaults();return Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})})}}catch(e){}
   return defaults();
@@ -403,7 +410,7 @@ function totals(){
 }
 
 /* ═══════════ RENDER ═══════════ */
-function renderAll(){renderOzet();renderVarlik();renderZekat();renderBorc();renderAyar()}
+function renderAll(){renderOzet();renderVarlik();renderZekat();renderBorc();renderTrusts();renderAyar()}
 
 function renderOzet(){
   const t=totals();
@@ -579,6 +586,19 @@ function renderBorc(){
   }).join('');
 }
 
+function renderTrusts(){
+  const el=document.getElementById('t-list');if(!el)return;
+  const curU=CUR_UNITS;
+  const list=S.trusts.slice().sort((a,b)=>(a.done-b.done)||a.who.localeCompare(b.who));
+  if(!list.length){el.innerHTML='<div class="empty"><span class="big">🔒</span>Emanet kaydı yok.</div>';return}
+  el.innerHTML=list.map(t=>{
+    const isMine=t.dir==='bende',rem=debtRemaining(t),paid=debtPaid(t);
+    return '<div class="item'+(t.done?' done':'')+'"><div class="ic" style="cursor:pointer" onclick="openTrustCard(\''+t.id+'\')">🔒</div>'+
+    '<div class="tx" style="cursor:pointer" onclick="openTrustCard(\''+t.id+'\')"><b>'+esc(t.who)+'</b><small>'+(isMine?'Bende duran emanet':'Onda duran emanetim')+' · '+fmt2(rem)+' '+curU[t.cur]+(paid>0?' (kalan, '+t.payments.length+' iade)':'')+'</small></div>'+
+    '<div class="rowbtns"><button class="iconbtn" onclick="toggleTrust(\''+t.id+'\')" aria-label="İade edildi">'+(t.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delTrust(\''+t.id+'\')" aria-label="Sil">🗑️</button></div></div>';
+  }).join('');
+}
+
 function renderAyar(){
   document.getElementById('a-kurform').innerHTML=Object.entries(RATE_LABELS).map(([k,l])=>
     '<label>'+l+'</label><input type="number" step="0.01" inputmode="decimal" id="rate-'+k+'" value="'+(S.rates[k]||'')+'" placeholder="0,00">').join('');
@@ -688,6 +708,87 @@ function delPayment(debtId,paymentId){
   d.payments=(d.payments||[]).filter(p=>p.id!==paymentId);
   d.done=debtRemaining(d)<=0;
   save();renderAll();openDebtCard(debtId);
+  });
+}
+
+/* ═══════════ EMANET CRUD ═══════════ */
+function openTrust(id){
+  const t=id?S.trusts.find(x=>x.id===id):null;
+  sheet(`<h3>${t?'Emaneti Düzenle':'Emanet Ekle'}</h3>
+  <label>Tür</label>
+  <div class="seg" id="f-dir">
+    <button class="${!t||t.dir==='bende'?'on':''}" data-v="bende" type="button">Bende duruyor 🔒</button>
+    <button class="${t&&t.dir==='onda'?'on':''}" data-v="onda" type="button">Onda duruyor 📤</button>
+  </div>
+  <label>Kişi / Kurum</label><input id="f-who" value="${t?esc(t.who):''}" placeholder="örn. Ahmet abi">
+  <div class="frow">
+    <div><label>Tutar</label><input type="number" step="0.01" inputmode="decimal" id="f-amt" value="${t?t.amount:''}" placeholder="0"></div>
+    <div><label>Birim</label><select id="f-cur">${CUR_OPTS}</select></div>
+  </div>
+  <label>Not (isteğe bağlı)</label><input id="f-note" value="${t?esc(t.note||''):''}" placeholder="örn. Kasada zarf içinde">
+  <button class="btn primary" onclick="saveTrust('${t?t.id:''}')">${t?'Kaydet':'Ekle'}</button>`);
+  document.querySelectorAll('#f-dir button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#f-dir button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  });
+  if(t)document.getElementById('f-cur').value=t.cur;
+}
+function saveTrust(id){
+  const dir=document.querySelector('#f-dir .on').dataset.v;
+  const who=document.getElementById('f-who').value.trim();
+  const amount=parseFloat(document.getElementById('f-amt').value);
+  const cur=document.getElementById('f-cur').value;
+  const note=document.getElementById('f-note').value.trim();
+  if(!who)return toast('Kişi adı girin');
+  if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(id){const t=S.trusts.find(x=>x.id===id);Object.assign(t,{dir,who,amount,cur,note});t.done=debtRemaining(t)<=0;}
+  else S.trusts.push({id:uid(),dir,who,amount,cur,note,done:false,payments:[]});
+  save();closeSheet();renderAll();toast(id?'Kayıt güncellendi ✓':'Kayıt eklendi ✓');
+}
+function toggleTrust(id){const t=S.trusts.find(x=>x.id===id);t.done=!t.done;save();renderAll();toast(t.done?'İade edildi ✓':'Yeniden açıldı')}
+function delTrust(id){openConfirm('Bu emanet kaydı silinsin mi?',()=>{S.trusts=S.trusts.filter(t=>t.id!==id);save();renderAll()})}
+
+function openTrustCard(id){
+  const t=S.trusts.find(x=>x.id===id);if(!t)return;
+  const isMine=t.dir==='bende',rem=debtRemaining(t),paid=debtPaid(t);
+  sheet(`<h3>${esc(t.who)}</h3>
+  <p class="mini" style="margin-top:0">${isMine?'Bende duran emanet':'Onda duran emanetim'} · Toplam: <b class="num">${fmt2(t.amount)} ${CUR_UNITS[t.cur]}</b>${t.note?' · '+esc(t.note):''}</p>
+  <div class="grid2">
+    <div class="stat"><div class="eyebrow">İade Edilen</div><div class="v num">${fmt2(paid)} ${CUR_UNITS[t.cur]}</div></div>
+    <div class="stat"><div class="eyebrow">Kalan</div><div class="v num">${fmt2(rem)} ${CUR_UNITS[t.cur]}</div></div>
+  </div>
+  <label>İade Geçmişi</label>
+  ${(t.payments&&t.payments.length)?t.payments.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(p=>
+    '<div class="item"><div class="tx"><b>'+trDate(p.date)+'</b></div><div class="val"><b class="num">'+fmt2(p.amount)+' '+CUR_UNITS[t.cur]+'</b></div>'+
+    '<button class="iconbtn" onclick="delTrustPayment(\''+t.id+'\',\''+p.id+'\')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz iade kaydı yok.</p>'}
+  <button class="btn gold" onclick="openTrustPayment('${t.id}')">💵 İade Ekle</button>
+  <button class="btn ghost" onclick="openTrust('${t.id}')">✏️ Kaydı Düzenle</button>`);
+}
+function openTrustPayment(id){
+  const t=S.trusts.find(x=>x.id===id);if(!t)return;
+  const rem=debtRemaining(t);
+  sheet(`<h3>İade Ekle</h3>
+  <p class="mini" style="margin-top:0">${esc(t.who)} · Kalan: <b class="num">${fmt2(rem)} ${CUR_UNITS[t.cur]}</b></p>
+  <label>İade Tutarı</label><input type="number" step="0.01" inputmode="decimal" id="f-pamt" value="${rem?Math.round(rem*100)/100:''}" placeholder="0">
+  <label>Tarih</label><input type="date" id="f-pdate" value="${new Date().toISOString().slice(0,10)}">
+  <button class="btn primary" onclick="saveTrustPayment('${t.id}')">İadeyi Kaydet</button>
+  <button class="btn ghost" onclick="openTrustCard('${t.id}')">◀ Geri</button>`);
+}
+function saveTrustPayment(id){
+  const t=S.trusts.find(x=>x.id===id);if(!t)return;
+  const amount=parseFloat(document.getElementById('f-pamt').value);
+  const date=document.getElementById('f-pdate').value;
+  if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(!t.payments)t.payments=[];
+  t.payments.push({id:uid(),amount,date});
+  if(debtRemaining(t)<=0)t.done=true;
+  save();renderAll();openTrustCard(id);toast('İade kaydedildi ✓');
+}
+function delTrustPayment(trustId,paymentId){
+  openConfirm('Bu iade kaydı silinsin mi?',()=>{
+  const t=S.trusts.find(x=>x.id===trustId);if(!t)return;
+  t.payments=(t.payments||[]).filter(p=>p.id!==paymentId);
+  t.done=debtRemaining(t)<=0;
+  save();renderAll();openTrustCard(trustId);
   });
 }
 
