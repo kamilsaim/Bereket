@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.7.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.7.1-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -90,6 +90,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.7.1** | 20.07.2026 | Borç/alacak liste satırı sadeleşti: sadece kalan tutar kalın gösteriliyor |
 | **v1.7.0** | 20.07.2026 | Borç/Alacak sekmesinde "Emanetler" bölümü: zekâta dahil olmayan emanet para/altın kayıtları, kısmi iade takibiyle |
 | **v1.6.0** | 20.07.2026 | İsteğe bağlı bulut yedekleme: Google ile giriş, Supabase üzerinde senkron |
 | **v1.5.0** | 20.07.2026 | Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar'dan sürüm geçmişi kaldırıldı, açılışta kurlar otomatik güncelleniyor |
