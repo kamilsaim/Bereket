@@ -344,8 +344,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.7.1';
 const CHANGELOG=[
+ {v:'1.7.1',d:'20.07.2026',n:'Borç/alacak listesinde satır sadeleşti: sadece kalan tutar kalın gösteriliyor, vade ve ödeme sayısı bilgisi kart detayına bırakıldı'},
  {v:'1.7.0',d:'20.07.2026',n:'Borç/Alacak sekmesine "Emanetler" bölümü eklendi: zekâta dahil olmayan, bende duran veya bendeki emanet para/altınları kısmi iade takibiyle kaydedebilirsiniz'},
  {v:'1.6.0',d:'20.07.2026',n:'İsteğe bağlı bulut yedekleme: Google ile giriş yapıp verileri Supabase üzerinde saklama, çoklu cihaz senkronu (buluta yükle / buluttan geri yükle)'},
  {v:'1.5.0',d:'20.07.2026',n:'Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar sayfasından sürüm geçmişi kaldırıldı, uygulama açılışında kurlar otomatik güncelleniyor'},
@@ -576,11 +577,9 @@ function renderBorc(){
   if(!list.length){el.innerHTML='<div class="empty"><span class="big">🤝</span>Kayıt yok.</div>';return}
   const curU=CUR_UNITS;
   el.innerHTML=list.map(d=>{
-    const v=debtValueTL(d),isB=d.dir==='borc',rem=debtRemaining(d),paid=debtPaid(d);
-    const overdue=!d.done&&d.due&&d.due<new Date().toISOString().slice(0,10);
+    const v=debtValueTL(d),isB=d.dir==='borc',rem=debtRemaining(d);
     return '<div class="item'+(d.done?' done':'')+'"><div class="ic '+(isB?'red':'')+'" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')">'+(isB?'📤':'📥')+'</div>'+
-    '<div class="tx" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · '+fmt2(rem)+' '+curU[d.cur]+(paid>0?' (kalan, '+d.payments.length+' ödeme)':'')+
-      (d.due?' · vade '+trDate(d.due):'')+(overdue?' · <span style="color:var(--red);font-weight:800">gecikti!</span>':'')+'</small></div>'+
+    '<div class="tx" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · <b>'+fmt2(rem)+' '+curU[d.cur]+'</b></small></div>'+
     '<div class="val"><b class="num '+(isB?'neg':'pos')+'">'+(isB?'−':'+')+fmt(v)+' ₺</b></div>'+
     '<div class="rowbtns"><button class="iconbtn" onclick="toggleDebt(\''+d.id+'\')" aria-label="Ödendi">'+(d.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delDebt(\''+d.id+'\')" aria-label="Sil">🗑️</button></div></div>';
   }).join('');
