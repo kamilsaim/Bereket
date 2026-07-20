@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.9.1-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.10.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -51,6 +51,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Google ile giriş yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz
 - Giriş yapmadan uygulama tamamen çevrimdışı ve cihaz-içi çalışmaya devam eder
 - "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
+- **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
 - Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
 
 ### 📈 Diğer
@@ -92,6 +93,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.10.0** | 20.07.2026 | Bulut senkronu otomatik hale geldi: açılış, sekme odağı ve 20 sn'lik periyotlarla sessiz kontrol/çekme |
 | **v1.9.1** | 20.07.2026 | Varlık türü dökümü rozet (chip) tasarımıyla güncellendi |
 | **v1.9.0** | 20.07.2026 | Varlıklar sekmesine tür bazlı döküm eklendi |
 | **v1.8.0** | 20.07.2026 | Borç/Alacak toplam kartlarına para birimi/ürün bazlı döküm eklendi |

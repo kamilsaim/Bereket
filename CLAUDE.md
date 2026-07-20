@@ -8,7 +8,7 @@ Bu dosya, projede çalışacak Claude oturumları için bağlam sağlar.
 - Dosya: `index.html` (HTML + CSS + JS tek dosyada, logo base64 gömülü) — GitHub Pages bu dosyayı otomatik olarak canlıya açar, **her zaman bu dosya düzenlenir**
 - Dil: Tamamen **Türkçe** arayüz
 - Dağıtım: GitHub Pages (statik)
-- Güncel sürüm: **v1.9.1** — sürüm sabiti kodda `APP_VERSION`, geçmiş `CHANGELOG` dizisinde
+- Güncel sürüm: **v1.10.0** — sürüm sabiti kodda `APP_VERSION`, geçmiş `CHANGELOG` dizisinde
 
 ## Kurallar (her düzenlemede uyulacak)
 1. **Her değişiklikte sürüm artır**: `APP_VERSION` güncellenir, `CHANGELOG` dizisine yeni satır eklenir (küçük düzeltme = patch, yeni özellik = minor). `CHANGELOG` dizisi Ayarlar arayüzünde artık gösterilmiyor (kaldırıldı) ama iç kayıt olarak tutulmaya devam eder.
@@ -40,6 +40,7 @@ Bu dosya, projede çalışacak Claude oturumları için bağlam sağlar.
 - **Kur çekme**: `fetchRates()` → `https://finans.truncgil.com/v4/today.json` (ücretsiz, anahtarsız). Hata durumunda elle giriş her zaman mümkün. Uygulama her açılışta `fetchRates()`'i otomatik çağırır ve sonucu toast ile bildirir.
 - **Render**: sekme başına `renderX()` fonksiyonları, `renderAll()` hepsini çağırır. Modal `sheet(html)` ile **ortalanmış** bir pencere olarak açılır (dip yapışık değil). Silme gibi geri alınamaz işlemler native `confirm()` yerine `openConfirm(msg,onYesCb)` ile uygulama içi onay penceresi kullanır.
 - **Bulut yedekleme (isteğe bağlı)**: Supabase projesi `beebook` (`pdxnpnlwrtswwifevlil`), tablo `public.brkt_data` (`user_id` PK → `auth.users`, `data jsonb` = tüm `S` nesnesi, `updated_at`), RLS ile sadece kendi `user_id`'sine sahip satırı okur/yazar. Harici JS kütüphanesi eklenmediği için Supabase Auth/PostgREST doğrudan `fetch()` ile REST API üzerinden çağrılır (supabase-js CDN kullanılmaz — "tek dosya" kuralına uyar). Google OAuth `${SB_URL}/auth/v1/authorize?provider=google&redirect_to=...` ile başlar, dönüşte URL fragment'ındaki `access_token`/`refresh_token` `handleAuthRedirect()` içinde işlenir ve `bereket_sb_session` anahtarıyla `localStorage`'a kaydedilir. `cloudPush()`/`cloudPull()` sırasıyla `brkt_data`'ya upsert/select yapar; `save()` her çağrıldığında, oturum açıksa `queueCloudSync()` 2.5 sn debounce ile arka planda `cloudPush(true)` tetikler. Giriş yapılmadıkça bulut hiç devreye girmez — tamamen isteğe bağlıdır.
+- **Otomatik çekme (polling)**: `autoCloudSync()` oturum açıksa `cloudLoad()` ile bulut satırını çeker, `updated_at`'ı `localStorage`'daki `CLOUD_SYNC_KEY` değeriyle karşılaştırır; bulut daha yeniyse veriyi sessizce uygular ve toast gösterir. Gerçek zamanlı websocket/Supabase Realtime yerine basit polling kullanılır (tek dosya + ekstra kütüphane istememe kısıtı nedeniyle). Tetiklendiği yerler: sayfa ilk yüklendiğinde, `visibilitychange` ile sekme/uygulama öne geldiğinde, ve `setInterval` ile her 20 saniyede bir (sayfa görünürken). `document.hidden` iken çalışmaz, gereksiz istek yapmaz.
 
 ## Tasarım Sistemi
 Logodan türetilmiştir (yeşil-altın cami kemeri, filiz, altın paralar):

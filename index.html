@@ -348,8 +348,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.9.1';
+const APP_VERSION='1.10.0';
 const CHANGELOG=[
+ {v:'1.10.0',d:'20.07.2026',n:'Bulut senkronu artık otomatik: uygulama açıldığında, sekme öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri sessizce çekiliyor, elle "Buluttan Geri Yükle" gerekmiyor'},
  {v:'1.9.1',d:'20.07.2026',n:'Varlık türü dökümü rozet (chip) tasarımıyla daha okunaklı hale getirildi'},
  {v:'1.9.0',d:'20.07.2026',n:'Varlıklar sekmesine, hangi türden toplam ne kadar varlığınız olduğunu gösteren döküm eklendi'},
  {v:'1.8.0',d:'20.07.2026',n:'Borç/Alacak sekmesindeki toplam kartlarına, hangi para biriminden/üründen ne kadar borç veya alacak olduğunu gösteren döküm eklendi'},
@@ -965,6 +966,24 @@ async function cloudSyncPrompt(){
   renderCloud();
 }
 
+async function autoCloudSync(){
+  if(document.hidden)return;
+  const s=getSession();if(!s)return;
+  const row=await cloudLoad();
+  if(!row||!row.data||!Object.keys(row.data).length)return;
+  const known=localStorage.getItem(CLOUD_SYNC_KEY);
+  if(row.updated_at&&(!known||new Date(row.updated_at)>new Date(known))){
+    const base=defaults();
+    S=Object.assign(base,row.data,{rates:Object.assign(base.rates,row.data.rates||{})});
+    localStorage.setItem(KEY,JSON.stringify(S));
+    localStorage.setItem(CLOUD_SYNC_KEY,row.updated_at);
+    renderAll();
+    toast('Diğer cihazdan güncellendi ✓');
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoCloudSync()});
+setInterval(autoCloudSync,20000);
+
 async function handleAuthRedirect(){
   if(!location.hash.includes('access_token'))return;
   const p=new URLSearchParams(location.hash.slice(1));
@@ -1045,6 +1064,7 @@ document.getElementById('eyebtn').textContent=S.hide?'🙈':'👁️';
 renderAll();
 fetchRates();
 handleAuthRedirect();
+autoCloudSync();
 </script>
 </body>
 </html>
