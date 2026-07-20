@@ -255,8 +255,8 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
 <!-- ═══════════ BORÇ / ALACAK ═══════════ -->
 <section class="page" id="p-borc">
   <div class="grid2" style="margin-top:14px">
-    <div class="stat green"><div class="eyebrow">Alacak Toplamı</div><div class="v pos num" id="b-alacak">0 ₺</div></div>
-    <div class="stat red"><div class="eyebrow">Borç Toplamı</div><div class="v neg num" id="b-borc">0 ₺</div></div>
+    <div class="stat green"><div class="eyebrow">Alacak Toplamı</div><div class="v pos num" id="b-alacak">0 ₺</div><div class="mini" id="b-alacak-detay" style="margin-top:4px"></div></div>
+    <div class="stat red"><div class="eyebrow">Borç Toplamı</div><div class="v neg num" id="b-borc">0 ₺</div><div class="mini" id="b-borc-detay" style="margin-top:4px"></div></div>
   </div>
   <div class="card">
     <h2>Kayıtlar <span class="rule"></span></h2>
@@ -344,8 +344,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.7.1';
+const APP_VERSION='1.8.0';
 const CHANGELOG=[
+ {v:'1.8.0',d:'20.07.2026',n:'Borç/Alacak sekmesindeki toplam kartlarına, hangi para biriminden/üründen ne kadar borç veya alacak olduğunu gösteren döküm eklendi'},
  {v:'1.7.1',d:'20.07.2026',n:'Borç/alacak listesinde satır sadeleşti: sadece kalan tutar kalın gösteriliyor, vade ve ödeme sayısı bilgisi kart detayına bırakıldı'},
  {v:'1.7.0',d:'20.07.2026',n:'Borç/Alacak sekmesine "Emanetler" bölümü eklendi: zekâta dahil olmayan, bende duran veya bendeki emanet para/altınları kısmi iade takibiyle kaydedebilirsiniz'},
  {v:'1.6.0',d:'20.07.2026',n:'İsteğe bağlı bulut yedekleme: Google ile giriş yapıp verileri Supabase üzerinde saklama, çoklu cihaz senkronu (buluta yükle / buluttan geri yükle)'},
@@ -567,10 +568,17 @@ function saveHavl(){
 }
 
 let debtFilter='all';
+function curBreakdown(dir){
+  const sums={};
+  S.debts.forEach(d=>{if(d.done||d.dir!==dir)return;const rem=debtRemaining(d);if(rem<=0)return;sums[d.cur]=(sums[d.cur]||0)+rem});
+  return Object.entries(sums).map(([cur,amt])=>fmt2(amt)+' '+CUR_UNITS[cur]).join(' · ');
+}
 function renderBorc(){
   const t=totals();
   document.getElementById('b-alacak').textContent=fmt(t.alacak)+' ₺';
   document.getElementById('b-borc').textContent=fmt(t.borc)+' ₺';
+  document.getElementById('b-alacak-detay').textContent=curBreakdown('alacak');
+  document.getElementById('b-borc-detay').textContent=curBreakdown('borc');
   const el=document.getElementById('b-list');
   let list=S.debts.slice().sort((a,b)=>(a.done-b.done)||((a.due||'9999').localeCompare(b.due||'9999')));
   if(debtFilter!=='all')list=list.filter(d=>d.dir===debtFilter);
