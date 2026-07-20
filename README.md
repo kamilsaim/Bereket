@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.5.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.6.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -40,6 +40,12 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Vade takibi — geciken kayıtlar kırmızı uyarı alır
 - "Ödendi" işaretleme ve filtreleme
 
+### ☁️ Bulut Yedekleme (isteğe bağlı)
+- Google ile giriş yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz
+- Giriş yapmadan uygulama tamamen çevrimdışı ve cihaz-içi çalışmaya devam eder
+- "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
+- Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
+
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
 - **Gizlilik modu** 🙈 — tek dokunuşla tüm tutarları gizleyin
@@ -59,8 +65,11 @@ Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 
 ## 🔒 Gizlilik
 
-Tüm verileriniz **yalnızca kendi cihazınızda** (`localStorage`) saklanır.
+Tüm verileriniz varsayılan olarak **yalnızca kendi cihazınızda** (`localStorage`) saklanır.
 Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
+Google ile giriş yapmayı seçerseniz veriler ayrıca Supabase'de, yalnızca sizin erişebileceğiniz
+şekilde (Row Level Security ile korunan, size özel bir kayıt) saklanır. Giriş yapmazsanız bu
+adım hiç devreye girmez.
 
 ## 🛠️ Teknik
 
@@ -69,12 +78,14 @@ Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
 | Yapı | Tek dosya HTML + CSS + JS, framework yok |
 | Depolama | `localStorage` (JSON yedekleme ile taşınabilir) |
 | Kur kaynağı | [finans.truncgil.com](https://finans.truncgil.com) (isteğe bağlı) |
+| Bulut yedekleme | Supabase (isteğe bağlı, Google girişiyle) |
 | Tipografi | Marcellus + Manrope |
 
 ## 📋 Sürüm Geçmişi
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.6.0** | 20.07.2026 | İsteğe bağlı bulut yedekleme: Google ile giriş, Supabase üzerinde senkron |
 | **v1.5.0** | 20.07.2026 | Popup pencereler ortalanmış modal olarak açılıyor, silme onayları uygulama içi popup ile yapılıyor, Ayarlar'dan sürüm geçmişi kaldırıldı, açılışta kurlar otomatik güncelleniyor |
 | **v1.4.0** | 20.07.2026 | Borç/alacaklarda kısmi ödeme takibi ve düzenleme, nisab 80 grama güncellendi, 22 ayar gram altın seçeneği, TL simgesi ikonu, ayarlar sayfası düzeni, mouse ile kaydırma düzeltmesi |
 | **v1.3.0** | 19.07.2026 | Altın varlıklarda has karşılığı gösterimi, toplam has altın ve 85 g nisabla karşılaştırma |
