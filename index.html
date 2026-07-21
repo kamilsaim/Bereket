@@ -348,8 +348,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.10.0';
+const APP_VERSION='1.10.1';
 const CHANGELOG=[
+ {v:'1.10.1',d:'21.07.2026',n:'Oturum yenileme sırasında geçici ağ hatalarında artık otomatik çıkış yapılmıyor; sadece gerçekten geçersiz oturumlarda çıkış tetikleniyor'},
  {v:'1.10.0',d:'20.07.2026',n:'Bulut senkronu artık otomatik: uygulama açıldığında, sekme öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri sessizce çekiliyor, elle "Buluttan Geri Yükle" gerekmiyor'},
  {v:'1.9.1',d:'20.07.2026',n:'Varlık türü dökümü rozet (chip) tasarımıyla daha okunaklı hale getirildi'},
  {v:'1.9.0',d:'20.07.2026',n:'Varlıklar sekmesine, hangi türden toplam ne kadar varlığınız olduğunu gösteren döküm eklendi'},
@@ -900,13 +901,16 @@ async function cloudLogout(){
 }
 
 async function refreshSession(s){
+  let r;
   try{
-    const r=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
-    if(!r.ok)throw 0;
+    r=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+  }catch(e){return s}
+  if(!r.ok){if(r.status===400||r.status===401){setSession(null);return null}return s}
+  try{
     const d=await r.json();
     const ns={access_token:d.access_token,refresh_token:d.refresh_token||s.refresh_token,expires_at:Date.now()/1000+(d.expires_in||3600),user:s.user};
     setSession(ns);return ns;
-  }catch(e){setSession(null);return null}
+  }catch(e){return s}
 }
 async function sbToken(){
   let s=getSession();if(!s)return null;
