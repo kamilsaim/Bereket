@@ -31,7 +31,7 @@
    position:fixed nav/header YOK. */
 html{height:100%}
 body{
-  height:100vh;height:100dvh;
+  height:100vh;height:100dvh;height:var(--vh,100dvh);
   display:flex;flex-direction:column;overflow:hidden;
   font-family:'Manrope',system-ui,sans-serif;background:var(--ivory);color:var(--ink);
   font-size:15px;line-height:1.5;
@@ -330,8 +330,10 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
   </div>
   <div class="card">
     <h2>Yedekleme <span class="rule"></span></h2>
+    <p class="mini" style="margin-top:0">⚠️ iOS'ta uygulamayı ana ekrandan <b>silmek cihazdaki verileri de siler.</b> Silmeden önce buluta veya JSON dosyasına yedek alın.</p>
     <button class="btn ghost" style="margin-top:4px" onclick="exportData()">⬇ Verileri indir (JSON)</button>
     <button class="btn ghost" onclick="document.getElementById('importfile').click()">⬆ Yedekten geri yükle</button>
+    <button class="btn ghost" onclick="openLocalBackups()">🕘 Günlük otomatik yedekler</button>
     <input type="file" id="importfile" accept=".json" hidden onchange="importData(this)">
     <button class="btn danger" onclick="wipeData()">Tüm verileri sil</button>
   </div>
@@ -380,8 +382,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.13.0';
+const APP_VERSION='1.14.0';
 const CHANGELOG=[
+ {v:'1.14.0',d:'22.07.2026',n:'VERİ KAYBI KORUMASI: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik push çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz; günlük otomatik yerel yedekler (son 7 gün, Ayarlar\'dan geri yüklenebilir); iOS ana ekrandan silmenin verileri sildiği uyarısı; iOS\'ta alt menünün bir düzelip bir bozulması --vh düzeltmesiyle giderildi'},
  {v:'1.13.0',d:'22.07.2026',n:'iOS ana ekran (standalone) modunda menü düğmelerinin altına basma gerektirmesi ve yeniden açılışta alttaki boşluk kesin çözüldü: sabit (fixed) konumlu üst/alt barlar kaldırılıp flexbox uygulama kabuğuna geçildi — header ve alt menü artık akış içinde sabit, yalnızca orta alan kayar'},
  {v:'1.12.1',d:'22.07.2026',n:'iOS\'ta alt gezinme çubuğunun altındaki boşluk giderildi (nav arka planı ekran dibine kadar uzatıldı, #app sabit konumlandırıldı); Ayarlar sayfasında sürüm numarası belirgin bir rozet olarak öne çıkarıldı'},
  {v:'1.12.0',d:'21.07.2026',n:'Kaydırma mimarisi yeniden yapıldı: html/body kilitlendi, tek kaydırıcı #app kabı oldu (Android Chrome tek parmak kaydırma sorununun kesin çözümü); üst yeşil bar artık sabit (sticky) duruyor; hero kartı sticky header ile örtüşmeyecek şekilde ayarlandı'},
@@ -415,7 +418,18 @@ function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){const base=defaults();return Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})})}}catch(e){}
   return defaults();
 }
-function save(){snapshot();localStorage.setItem(KEY,JSON.stringify(S));queueCloudSync()}
+function save(){snapshot();dailyBackup();S.mod=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(S));queueCloudSync()}
+/* Veri kaybına karşı emniyet ağı: her günün İLK değişikliğinden önceki durum saklanır (son 7 gün) */
+function isEmptyData(d){return !((d.assets&&d.assets.length)||(d.debts&&d.debts.length)||(d.zakat&&d.zakat.length)||(d.trusts&&d.trusts.length))}
+function dailyBackup(){try{
+  const day=new Date().toISOString().slice(0,10),k='bereket_bak_'+day;
+  if(!localStorage.getItem(k)){
+    const prev=localStorage.getItem(KEY);
+    if(prev){const pd=JSON.parse(prev);if(!isEmptyData(pd))localStorage.setItem(k,prev)}
+  }
+  const ks=Object.keys(localStorage).filter(x=>x.startsWith('bereket_bak_')).sort();
+  while(ks.length>7)localStorage.removeItem(ks.shift());
+}catch(e){}}
 function snapshot(){
   const t=totals(),day=new Date().toISOString().slice(0,10);
   const last=S.history[S.history.length-1];
@@ -971,8 +985,33 @@ async function cloudLoad(){
     return await r.json();
   }catch(e){return null}
 }
+let _syncReady=false; // açılıştaki bulut kararı (initialSync) verilmeden HİÇBİR otomatik push çalışmaz
+function applyCloud(row){
+  const base=defaults();
+  S=Object.assign(base,row.data,{rates:Object.assign(base.rates,row.data.rates||{})});
+  localStorage.setItem(KEY,JSON.stringify(S));
+  localStorage.setItem(CLOUD_SYNC_KEY,row.updated_at||new Date().toISOString());
+  renderAll();
+}
 async function cloudPush(silent){
   const s=await sbToken();if(!s){if(!silent)toast('Önce Google ile giriş yapın');return}
+  if(silent&&!_syncReady)return; // açılış yarışını engelle: bulut okunmadan otomatik yazma yok
+  if(isEmptyData(S)){
+    const row=await cloudLoad();
+    if(row&&row.data&&!isEmptyData(row.data)){
+      if(silent)return; // boş yerel veriyi dolu bulut yedeğinin üzerine SESSİZCE asla yazma
+      sheet(`<h3>⚠️ Dikkat</h3><p class="mini" style="margin-top:0">Bu cihazda hiç kayıt yok ama bulutta dolu bir yedek var. Yüklerseniz buluttaki yedek <b>boş veriyle silinir</b>. Önce "Buluttan Geri Yükle" yapmanız önerilir.</p>
+      <button class="btn primary" onclick="closeSheet();cloudPull()">☁️ Buluttan Geri Yükle (önerilen)</button>
+      <button class="btn danger" onclick="closeSheet();forceCloudPush()">Yine de boş veriyi yükle</button>
+      <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+      return;
+    }
+  }
+  await doCloudPush(silent);
+}
+async function forceCloudPush(){await doCloudPush(false)}
+async function doCloudPush(silent){
+  const s=await sbToken();if(!s)return;
   try{
     const r=await fetch(SB_URL+'/rest/v1/brkt_data',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:s.user.id,data:S,updated_at:new Date().toISOString()})});
     if(!r.ok)throw 0;
@@ -984,15 +1023,32 @@ async function cloudPush(silent){
 async function cloudPull(){
   const row=await cloudLoad();
   if(row&&row.data&&Object.keys(row.data).length){
-    const base=defaults();
-    S=Object.assign(base,row.data,{rates:Object.assign(base.rates,row.data.rates||{})});
-    localStorage.setItem(KEY,JSON.stringify(S));
-    localStorage.setItem(CLOUD_SYNC_KEY,new Date().toISOString());
-    renderAll();
+    applyCloud(row);
     toast('Buluttan geri yüklendi ✓');
   }else{
     toast('Buluttan veri bulunamadı');
   }
+}
+
+/* Açılışta BULUT ÖNCELİKLİDİR: giriş yapılıysa önce bulut okunur, karar verilir,
+   push'lar ancak ondan sonra serbest kalır. Yerel boşsa ve bulut doluysa
+   koşulsuz bulut uygulanır (iOS'un ana ekrandan silmede localStorage'ı
+   temizlemesine karşı — v1.14.0 veri kaybı düzeltmesi). */
+async function initialSync(){
+  try{
+    if(!getSession())return;
+    const row=await cloudLoad();
+    if(row&&row.data&&Object.keys(row.data).length){
+      const cloudFull=!isEmptyData(row.data);
+      const localEmpty=isEmptyData(S);
+      const cloudNewer=row.updated_at&&(!S.mod||new Date(row.updated_at)>new Date(S.mod));
+      if((localEmpty&&cloudFull)||cloudNewer){
+        applyCloud(row);
+        toast('Bulut verileriniz yüklendi ✓');
+      }
+    }
+  }catch(e){}
+  finally{_syncReady=true}
 }
 
 let _cloudTimer=null;
@@ -1016,17 +1072,14 @@ async function cloudSyncPrompt(){
 }
 
 async function autoCloudSync(){
-  if(document.hidden)return;
+  if(document.hidden||!_syncReady)return;
   const s=getSession();if(!s)return;
   const row=await cloudLoad();
   if(!row||!row.data||!Object.keys(row.data).length)return;
   const known=localStorage.getItem(CLOUD_SYNC_KEY);
-  if(row.updated_at&&(!known||new Date(row.updated_at)>new Date(known))){
-    const base=defaults();
-    S=Object.assign(base,row.data,{rates:Object.assign(base.rates,row.data.rates||{})});
-    localStorage.setItem(KEY,JSON.stringify(S));
-    localStorage.setItem(CLOUD_SYNC_KEY,row.updated_at);
-    renderAll();
+  const localEmpty=isEmptyData(S)&&!isEmptyData(row.data);
+  if(localEmpty||(row.updated_at&&(!known||new Date(row.updated_at)>new Date(known)))){
+    applyCloud(row);
     toast('Diğer cihazdan güncellendi ✓');
   }
 }
@@ -1050,6 +1103,29 @@ async function handleAuthRedirect(){
 }
 
 /* ═══════════ YEDEK ═══════════ */
+function openLocalBackups(){
+  const ks=Object.keys(localStorage).filter(x=>x.startsWith('bereket_bak_')).sort().reverse();
+  if(!ks.length){sheet('<h3>Günlük Yedekler</h3><p class="mini" style="margin-top:0">Henüz otomatik yedek yok. Her günün ilk değişikliğinden önceki durum otomatik saklanır (son 7 gün).</p><button class="btn ghost" onclick="closeSheet()">Kapat</button>');return}
+  const rows=ks.map(k=>{
+    let info='';
+    try{const d=JSON.parse(localStorage.getItem(k));info=(d.assets?d.assets.length:0)+' varlık · '+(d.debts?d.debts.length:0)+' borç/alacak · '+(d.zakat?d.zakat.length:0)+' zekât'}catch(e){}
+    return '<div class="item"><div class="ic">🕘</div><div class="tx"><b>'+trDate(k.replace('bereket_bak_',''))+'</b><small>'+info+'</small></div><button class="iconbtn" style="font-size:14px;font-weight:800;color:var(--green)" onclick="restoreLocalBackup(\''+k+'\')">Geri Yükle</button></div>';
+  }).join('');
+  sheet('<h3>Günlük Yedekler</h3><p class="mini" style="margin-top:0">Her günün ilk değişikliğinden önceki durum saklanır (son 7 gün). Geri yükleme, mevcut veriyi bu yedekle değiştirir.</p>'+rows+'<button class="btn ghost" onclick="closeSheet()">Kapat</button>');
+}
+function restoreLocalBackup(k){
+  sheet(`<h3>Yedeği geri yükle?</h3><p class="mini" style="margin-top:0"><b>${trDate(k.replace('bereket_bak_',''))}</b> tarihli yedek, şu anki verilerin yerine geçecek ve buluta da bu hali yazılacak.</p>
+  <button class="btn primary" onclick="doRestoreLocalBackup('${k}')">Evet, geri yükle</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+function doRestoreLocalBackup(k){
+  try{
+    const d=JSON.parse(localStorage.getItem(k));
+    const base=defaults();
+    S=Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})});
+    save();closeSheet();renderAll();toast('Yedek geri yüklendi ✓');
+  }catch(e){toast('Yedek okunamadı')}
+}
 function exportData(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');
@@ -1121,9 +1197,19 @@ document.querySelectorAll('#b-filter button').forEach(b=>b.onclick=()=>{
 
 document.getElementById('eyebtn').textContent=S.hide?'🙈':'👁️';
 renderAll();
-fetchRates();
-handleAuthRedirect();
-autoCloudSync();
+/* iOS standalone'da 100dvh yeniden açılışta yanlış hesaplanabiliyor ("alt kısım bir düzelip
+   bir bozuluyor") — gerçek pencere yüksekliği JS ile --vh değişkenine yazılır (v1.14.0) */
+function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight+'px')}
+setVH();
+window.addEventListener('resize',setVH);
+if(window.visualViewport)visualViewport.addEventListener('resize',setVH);
+window.addEventListener('pageshow',setVH);
+/* KRİTİK SIRA: kur çekme save() tetiklediği için bulut kararı verilmeden ÇALIŞTIRILMAZ */
+(async()=>{
+  await handleAuthRedirect();
+  await initialSync();
+  fetchRates();
+})();
 </script>
 </body>
 </html>
