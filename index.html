@@ -294,6 +294,7 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
 <section class="page" id="p-ayar">
   <div class="card" style="text-align:center">
     <img src="" data-logo alt="" style="width:64px;opacity:.9">
+    <p class="mini" style="font-style:italic;margin-top:8px">"Namazı dosdoğru kılın ve zekâtı verin. Kendiniz için önceden her ne iyilik yaparsanız, mükâfatını Allah'ın yanında bulacaksınız. Çünkü Allah, bütün yaptıklarınızı görmektedir." <b>— Bakara Suresi, 110</b></p>
     <p class="mini">Bereket <span id="a-ver"></span> · Veriler bu cihazda saklanır; isteğe bağlı olarak Google ile giriş yapıp buluta yedekleyebilirsiniz.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
   </div>
   <div class="card">
@@ -358,8 +359,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.11.1';
+const APP_VERSION='1.11.2';
 const CHANGELOG=[
+ {v:'1.11.2',d:'21.07.2026',n:'Android cihazlarda bazı ekranlarda kaydırmanın kesikli/donuk çalışmasına yol açan fare tekerleği düzeltmesi artık sadece dokunmatiği olmayan cihazlarda devrede; Ayarlar sayfasına logonun altına Bakara Suresi 110. ayet eklendi'},
  {v:'1.11.1',d:'21.07.2026',n:'Ayarlar sayfasında Bulut Yedekleme bölümü program bilgisinin hemen altına alındı; tarih giriş alanlarının diğer alanlardan büyük görünme sorunu tekrar düzeltildi'},
  {v:'1.11.0',d:'21.07.2026',n:'Popup pencerelere kapatma (✕) düğmesi eklendi, tarih giriş alanlarının pencereden taşması düzeltildi, varlıklara alış tarihi ve emanetlere tarih alanı eklendi'},
  {v:'1.10.1',d:'21.07.2026',n:'Oturum yenileme sırasında geçici ağ hatalarında artık otomatik çıkış yapılmıyor; sadece gerçekten geçersiz oturumlarda çıkış tetikleniyor'},
@@ -1060,13 +1062,19 @@ function openConfirm(msg,cb){
 }
 function runConfirm(){const cb=_confirmCb;_confirmCb=null;closeSheet();if(cb)cb();}
 
-/* Bazı ortamlarda (webview vb.) fare tekerleği yerel kaydırmayı tetiklemiyor —
-   burada elle kaydırma uygulayarak garanti altına alıyoruz. */
-document.addEventListener('wheel',function(e){
-  if(e.target.closest('.sheet'))return; // alt panel kendi kaydırmasını yönetsin
-  e.preventDefault();
-  window.scrollBy(0,e.deltaY);
-},{passive:false});
+/* Bazı ortamlarda (masaüstü webview vb.) fare tekerleği yerel kaydırmayı tetiklemiyor —
+   burada elle kaydırma uygulayarak garanti altına alıyoruz. Dokunmatik cihazlarda
+   (Android/iOS) bu iş zaten native olarak çalışıyor; hatta bazı Android WebView'lerinde
+   dokunmatik kaydırma sentetik 'wheel' event'leri üretip bu düzeltmeyle çakışarak
+   kaydırmayı kesikli/donuk hale getiriyordu — bu yüzden yalnızca dokunmatiği olmayan
+   cihazlarda devreye alınır. */
+if(!('ontouchstart' in window) && !navigator.maxTouchPoints){
+  document.addEventListener('wheel',function(e){
+    if(e.target.closest('.sheet'))return; // alt panel kendi kaydırmasını yönetsin
+    e.preventDefault();
+    window.scrollBy(0,e.deltaY);
+  },{passive:false});
+}
 
 /* Sekmeler */
 document.querySelectorAll('nav .tab').forEach(t=>t.onclick=()=>{
