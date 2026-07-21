@@ -122,7 +122,13 @@ input,select,textarea{
   width:100%;min-width:0;max-width:100%;padding:12px 13px;border:1.5px solid rgba(30,86,49,.18);border-radius:12px;
   font:inherit;background:#fff;color:var(--ink);font-size:16px;
 }
-input[type=date]{padding:12px 8px;font-size:14.5px}
+input[type=date]{
+  padding:12px 8px;font-size:14px;-webkit-appearance:none;appearance:none;
+  box-sizing:border-box;
+}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+input[type=date]::-webkit-datetime-edit{overflow:hidden;max-width:100%}
+input[type=date]::-webkit-calendar-picker-indicator{padding:0;margin-left:4px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(30,86,49,.12)}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
 .frow>div{min-width:0}
@@ -291,15 +297,15 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <p class="mini">Bereket <span id="a-ver"></span> · Veriler bu cihazda saklanır; isteğe bağlı olarak Google ile giriş yapıp buluta yedekleyebilirsiniz.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
   </div>
   <div class="card">
+    <h2>Bulut Yedekleme <span class="rule"></span></h2>
+    <div id="a-cloud"></div>
+  </div>
+  <div class="card">
     <h2>Kurlar <span class="rule"></span></h2>
     <p class="mini" style="margin-top:0">Birim fiyatları TL cinsinden girin veya internetten çekin.</p>
     <div id="a-kurform"></div>
     <button class="btn ghost" onclick="fetchRates()">⟳ İnternetten çek</button>
     <button class="btn primary" onclick="saveRatesForm()">Kurları Kaydet</button>
-  </div>
-  <div class="card">
-    <h2>Bulut Yedekleme <span class="rule"></span></h2>
-    <div id="a-cloud"></div>
   </div>
   <div class="card">
     <h2>Yedekleme <span class="rule"></span></h2>
@@ -352,8 +358,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.11.0';
+const APP_VERSION='1.11.1';
 const CHANGELOG=[
+ {v:'1.11.1',d:'21.07.2026',n:'Ayarlar sayfasında Bulut Yedekleme bölümü program bilgisinin hemen altına alındı; tarih giriş alanlarının diğer alanlardan büyük görünme sorunu tekrar düzeltildi'},
  {v:'1.11.0',d:'21.07.2026',n:'Popup pencerelere kapatma (✕) düğmesi eklendi, tarih giriş alanlarının pencereden taşması düzeltildi, varlıklara alış tarihi ve emanetlere tarih alanı eklendi'},
  {v:'1.10.1',d:'21.07.2026',n:'Oturum yenileme sırasında geçici ağ hatalarında artık otomatik çıkış yapılmıyor; sadece gerçekten geçersiz oturumlarda çıkış tetikleniyor'},
  {v:'1.10.0',d:'20.07.2026',n:'Bulut senkronu artık otomatik: uygulama açıldığında, sekme öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri sessizce çekiliyor, elle "Buluttan Geri Yükle" gerekmiyor'},
