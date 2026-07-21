@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.10.1-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.11.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -93,6 +93,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.11.0** | 21.07.2026 | Popup pencerelere kapatma (✕) düğmesi, tarih giriş alanı taşma düzeltmesi, varlıklara alış tarihi ve emanetlere tarih alanı eklendi |
 | **v1.10.1** | 21.07.2026 | Oturum yenilemede geçici ağ hatalarında artık gereksiz çıkış yapılmıyor |
 | **v1.10.0** | 20.07.2026 | Bulut senkronu otomatik hale geldi: açılış, sekme odağı ve 20 sn'lik periyotlarla sessiz kontrol/çekme |
 | **v1.9.1** | 20.07.2026 | Varlık türü dökümü rozet (chip) tasarımıyla güncellendi |
