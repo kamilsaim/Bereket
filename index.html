@@ -35,7 +35,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 #app{
-  height:100%;height:100dvh;
+  position:fixed;top:0;left:0;right:0;bottom:0;
   overflow-y:auto;overflow-x:hidden;
   overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
@@ -169,6 +169,12 @@ nav{
   padding:6px 4px calc(6px + var(--safe-b));
   box-shadow:0 -4px 18px rgba(28,43,34,.08);
 }
+/* iOS'ta safe-area bölgesinde ivory zeminin görünüp boşluk gibi durmasını önler:
+   nav'ın altına, ekranın en dibine kadar aynı renkte bir dolgu çizilir (v1.12.1) */
+nav::after{
+  content:"";position:absolute;left:0;right:0;top:100%;height:100px;
+  background:rgba(255,255,255,.96);
+}
 .tab{flex:1;border:none;background:transparent;font:inherit;cursor:pointer;color:var(--muted);
   display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px}
 .tab .i{font-size:20px;line-height:1}
@@ -190,6 +196,11 @@ nav{
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(100px + var(--safe-b));background:var(--green-dk);color:#fff;padding:10px 18px;border-radius:30px;font-size:13.5px;font-weight:600;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap}
 .toast.show{opacity:1}
 .pill{display:inline-block;background:var(--gold-lt);color:var(--gold-dk);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.verbadge{display:inline-flex;align-items:center;gap:7px;margin:14px auto 6px;padding:7px 16px;
+  background:linear-gradient(135deg,var(--green),var(--green-dk));color:#fff;
+  border-radius:30px;font-family:'Marcellus',serif;font-size:15px;letter-spacing:.04em;
+  box-shadow:0 3px 10px rgba(30,86,49,.25);border:1px solid rgba(201,162,39,.5)}
+.verbadge b{font-family:'Manrope';font-weight:800;color:var(--gold-lt);font-size:14px;font-variant-numeric:tabular-nums}
 .chiprow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}
 .chip{display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green-dk);font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:20px}
 .chip b{font-weight:800;color:var(--ink)}
@@ -306,7 +317,8 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
   <div class="card" style="text-align:center">
     <img src="" data-logo alt="" style="width:64px;opacity:.9">
     <p class="mini" style="font-style:italic;margin-top:8px">"Namazı dosdoğru kılın ve zekâtı verin. Kendiniz için önceden her ne iyilik yaparsanız, mükâfatını Allah'ın yanında bulacaksınız. Çünkü Allah, bütün yaptıklarınızı görmektedir." <b>— Bakara Suresi, 110</b></p>
-    <p class="mini">Bereket <span id="a-ver"></span> · Veriler bu cihazda saklanır; isteğe bağlı olarak Google ile giriş yapıp buluta yedekleyebilirsiniz.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
+    <div class="verbadge">Bereket <b id="a-ver"></b></div>
+    <p class="mini">Veriler bu cihazda saklanır; isteğe bağlı olarak Google ile giriş yapıp buluta yedekleyebilirsiniz.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
   </div>
   <div class="card">
     <h2>Bulut Yedekleme <span class="rule"></span></h2>
@@ -371,8 +383,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.12.0';
+const APP_VERSION='1.12.1';
 const CHANGELOG=[
+ {v:'1.12.1',d:'22.07.2026',n:'iOS\'ta alt gezinme çubuğunun altındaki boşluk giderildi (nav arka planı ekran dibine kadar uzatıldı, #app sabit konumlandırıldı); Ayarlar sayfasında sürüm numarası belirgin bir rozet olarak öne çıkarıldı'},
  {v:'1.12.0',d:'21.07.2026',n:'Kaydırma mimarisi yeniden yapıldı: html/body kilitlendi, tek kaydırıcı #app kabı oldu (Android Chrome tek parmak kaydırma sorununun kesin çözümü); üst yeşil bar artık sabit (sticky) duruyor; hero kartı sticky header ile örtüşmeyecek şekilde ayarlandı'},
  {v:'1.11.4',d:'21.07.2026',n:'Android Chrome\'da sayfanın dokunmatik olarak hiç kaydırılamaması düzeltildi: html ve body üzerindeki çift overflow/height tanımı Chrome\'un viewport kaydırıcısını devre dışı bırakıyordu, doküman varsayılan kaydırmasına döndürüldü'},
  {v:'1.11.3',d:'21.07.2026',n:'Bazı Android cihazlarda dokunmatik algılama başarısız olup kaydırmanın tamamen donmasına yol açtığı için fare tekerleği düzeltmesine ek "pointer: coarse" kontrolü eklendi'},
