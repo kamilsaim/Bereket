@@ -23,9 +23,13 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%;overflow-x:hidden;overflow-y:auto}
+/* DİKKAT: html ve body'ye aynı anda overflow/height verme! Chrome (Android) her ikisinde
+   overflow tanımlıysa viewport kaydırıcısını devre dışı bırakır ve dokunmatik kaydırma
+   tamamen kilitlenir (Samsung Internet tolere eder, Chrome etmez). Doküman kendi
+   varsayılan kaydırmasını yapmalı; yalnızca yatay taşma engellenir. (v1.11.4) */
+html{overflow-x:hidden}
 body{
-  min-height:100dvh;overflow-x:hidden;overflow-y:auto;
+  min-height:100dvh;overflow-x:hidden;
   font-family:'Manrope',system-ui,sans-serif;background:var(--ivory);color:var(--ink);
   font-size:15px;line-height:1.5;overscroll-behavior-y:contain;
   -webkit-font-smoothing:antialiased;
@@ -359,8 +363,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.11.3';
+const APP_VERSION='1.11.4';
 const CHANGELOG=[
+ {v:'1.11.4',d:'21.07.2026',n:'Android Chrome\'da sayfanın dokunmatik olarak hiç kaydırılamaması düzeltildi: html ve body üzerindeki çift overflow/height tanımı Chrome\'un viewport kaydırıcısını devre dışı bırakıyordu, doküman varsayılan kaydırmasına döndürüldü'},
  {v:'1.11.3',d:'21.07.2026',n:'Bazı Android cihazlarda dokunmatik algılama başarısız olup kaydırmanın tamamen donmasına yol açtığı için fare tekerleği düzeltmesine ek "pointer: coarse" kontrolü eklendi'},
  {v:'1.11.2',d:'21.07.2026',n:'Android cihazlarda bazı ekranlarda kaydırmanın kesikli/donuk çalışmasına yol açan fare tekerleği düzeltmesi artık sadece dokunmatiği olmayan cihazlarda devrede; Ayarlar sayfasına logonun altına Bakara Suresi 110. ayet eklendi'},
  {v:'1.11.1',d:'21.07.2026',n:'Ayarlar sayfasında Bulut Yedekleme bölümü program bilgisinin hemen altına alındı; tarih giriş alanlarının diğer alanlardan büyük görünme sorunu tekrar düzeltildi'},
