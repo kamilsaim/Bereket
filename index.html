@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- v1.14.6 KRİTİK: "black-translucent" KULLANILMAYACAK. iOS ana ekran modunda sayfayı
+     y=0'dan (status bar'ın altından) başlatır AMA innerHeight'ı status bar kadar EKSİK
+     bildirir (ölçüldü: ekran 852, innerHeight 793, safe-top 59) → ekranın dibinde 59pt
+     ölü bant kalır ve alt menü o kadar yukarıda görünür. "default" ile webview status
+     bar'ın altına yerleşir, 793 yüksekliği ekranın dibine tam oturur. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1E5631">
 <title>Bereket — Zekât ve Varlık Takibi</title>
 <link rel="icon" id="fav">
@@ -394,8 +399,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.14.5';
+const APP_VERSION='1.14.6';
 const CHANGELOG=[
+ {v:'1.14.6',d:'22.07.2026',n:'Alt menünün ekranın dibine oturmaması sorununun GERÇEK nedeni bulundu ve düzeltildi: iOS status bar ayarı "black-translucent" iken sayfa ekranın tepesinden başlıyor ama yüksekliği status bar kadar eksik bildiriliyordu, bu yüzden dipte 59pt ölü bant kalıyordu. Ayar "default" yapıldı'},
  {v:'1.14.5',d:'22.07.2026',n:'GEÇİCİ: Ayarlar\'a "Ekran Tanılama" kartı eklendi — alt menü hizası sorununun gerçek nedenini cihaz üzerinde ölçmek için. Sorun çözülünce kaldırılacak'},
  {v:'1.14.4',d:'22.07.2026',n:'iOS ana ekranda alt menünün ekranın dibine oturmayıp yukarıda kalması KESİN olarak düzeltildi: pencere yüksekliğini JS ile ölçme yöntemi tamamen kaldırıldı, uygulama kabuğu artık CSS ile doğrudan ekran kutusuna sabitleniyor (position:fixed) — iOS\'un yanlış raporladığı yüksekliğe hiç bağlı değil'},
  {v:'1.14.3',d:'22.07.2026',n:'iOS ana ekranda ilk açılışta alt menünün bazen yukarıda kalması yeniden düzeltildi: pencere yüksekliği açılıştan sonra ~2,5 sn boyunca her karede ölçülüp görülen en büyük değer uygulanıyor; iOS\'un ilk anda eksik raporladığı yükseklik artık asla kalıcı olmuyor (uygulama öne geldiğinde de yeniden ölçülüyor)'},
