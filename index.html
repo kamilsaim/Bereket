@@ -382,8 +382,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.14.0';
+const APP_VERSION='1.14.1';
 const CHANGELOG=[
+ {v:'1.14.1',d:'22.07.2026',n:'iOS ana ekranda soğuk açılışta alt menünün yukarıda kalması düzeltildi: --vh artık load/orientationchange olaylarında ve gecikmeli (50/300/1000ms) yeniden ölçülüyor, böylece iOS\'un ilk anda yanlış raporladığı pencere yüksekliği düzeltiliyor'},
  {v:'1.14.0',d:'22.07.2026',n:'VERİ KAYBI KORUMASI: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik push çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz; günlük otomatik yerel yedekler (son 7 gün, Ayarlar\'dan geri yüklenebilir); iOS ana ekrandan silmenin verileri sildiği uyarısı; iOS\'ta alt menünün bir düzelip bir bozulması --vh düzeltmesiyle giderildi'},
  {v:'1.13.0',d:'22.07.2026',n:'iOS ana ekran (standalone) modunda menü düğmelerinin altına basma gerektirmesi ve yeniden açılışta alttaki boşluk kesin çözüldü: sabit (fixed) konumlu üst/alt barlar kaldırılıp flexbox uygulama kabuğuna geçildi — header ve alt menü artık akış içinde sabit, yalnızca orta alan kayar'},
  {v:'1.12.1',d:'22.07.2026',n:'iOS\'ta alt gezinme çubuğunun altındaki boşluk giderildi (nav arka planı ekran dibine kadar uzatıldı, #app sabit konumlandırıldı); Ayarlar sayfasında sürüm numarası belirgin bir rozet olarak öne çıkarıldı'},
@@ -1204,6 +1205,13 @@ setVH();
 window.addEventListener('resize',setVH);
 if(window.visualViewport)visualViewport.addEventListener('resize',setVH);
 window.addEventListener('pageshow',setVH);
+window.addEventListener('orientationchange',setVH);
+/* iOS ana ekran soğuk açılışta innerHeight ilk anda yanlış (eksik) rapor edilebiliyor,
+   layout oturduktan sonra tekrar ölçülür (v1.14.1) */
+window.addEventListener('load',setVH);
+setTimeout(setVH,50);
+setTimeout(setVH,300);
+setTimeout(setVH,1000);
 /* KRİTİK SIRA: kur çekme save() tetiklediği için bulut kararı verilmeden ÇALIŞTIRILMAZ */
 (async()=>{
   await handleAuthRedirect();
