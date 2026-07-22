@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.11.3-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.14.1-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -53,6 +53,8 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
 - **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
 - Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
+- **Veri kaybı koruması**: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik senkron çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz
+- **Günlük otomatik yerel yedekler**: son 7 günün yedeği Ayarlar'dan geri yüklenebilir — buluta hiç girmeden de bir güvenlik ağı sağlar
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
@@ -93,6 +95,11 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.14.1** | 22.07.2026 | iOS ana ekranda soğuk açılışta alt menünün yukarıda kalması düzeltildi: pencere yüksekliği load/orientationchange olaylarında ve gecikmeli olarak yeniden ölçülüyor |
+| **v1.14.0** | 22.07.2026 | Veri kaybı koruması: açılışta bulut önce okunur, boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılmaz; günlük otomatik yerel yedekler (son 7 gün, Ayarlar'dan geri yüklenebilir); iOS ana ekrandan silmenin verileri sildiği uyarısı |
+| **v1.13.0** | 22.07.2026 | iOS ana ekran (standalone) modunda menü düğmelerinin altına basma gerektirmesi ve yeniden açılışta alttaki boşluk kesin çözüldü: flexbox uygulama kabuğuna geçildi |
+| **v1.12.1** | 22.07.2026 | iOS'ta alt gezinme çubuğunun altındaki boşluk giderildi; Ayarlar'da sürüm numarası rozet olarak öne çıkarıldı |
+| **v1.12.0** | 21.07.2026 | Kaydırma mimarisi yeniden yapıldı: tek kaydırıcı #app kabı (Android Chrome tek parmak kaydırma sorununun kesin çözümü); üst bar sticky |
 | **v1.11.3** | 21.07.2026 | Bazı Android cihazlarda dokunmatik algılamanın başarısız olup kaydırmayı tamamen dondurduğu sorun için ek "pointer: coarse" kontrolü eklendi |
 | **v1.11.2** | 21.07.2026 | Android'de bazı ekranlarda kaydırmanın kesikli/donuk çalışmasına yol açan fare tekerleği düzeltmesi artık sadece dokunmatiği olmayan cihazlarda devrede; Ayarlar'da logonun altına Bakara Suresi 110. ayet eklendi |
 | **v1.11.1** | 21.07.2026 | Bulut Yedekleme bölümü Ayarlar'da program bilgisinin altına taşındı, tarih alanı büyüklük sorunu tekrar düzeltildi |
