@@ -365,6 +365,8 @@ const SB_URL='https://pdxnpnlwrtswwifevlil.supabase.co';
 const SB_KEY='sb_publishable_GL8MYellfvYl3sz76ZOKVw_n4JbUe4Y';
 const SB_SESSION_KEY='bereket_sb_session';
 const CLOUD_SYNC_KEY='bereket_cloud_lastsync';
+const RATES_FETCH_KEY='bereket_rates_lastfetch';
+const RATES_FETCH_MINGAP=3*60*60*1000;
 const ASSET_TYPES={
   gram:  {name:'Gram Altın (24 Ayar/Has)',unit:'gr', ic:'🪙', gold:true, hasGr:1},
   gram22:{name:'Gram Altın (22 Ayar)',unit:'gr', ic:'🪙', gold:true, factor:0.916,base:'gram'},
@@ -382,8 +384,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.14.1';
+const APP_VERSION='1.14.2';
 const CHANGELOG=[
+ {v:'1.14.2',d:'22.07.2026',n:'Açılışta kur çekme artık her seferinde değil, son başarılı çekimden 3 saat geçtiyse yapılıyor — gereksiz ağ isteği azaltıldı; elle "İnternetten çek" butonu her zaman çalışmaya devam ediyor'},
  {v:'1.14.1',d:'22.07.2026',n:'iOS ana ekranda soğuk açılışta alt menünün yukarıda kalması düzeltildi: --vh artık load/orientationchange olaylarında ve gecikmeli (50/300/1000ms) yeniden ölçülüyor, böylece iOS\'un ilk anda yanlış raporladığı pencere yüksekliği düzeltiliyor'},
  {v:'1.14.0',d:'22.07.2026',n:'VERİ KAYBI KORUMASI: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik push çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz; günlük otomatik yerel yedekler (son 7 gün, Ayarlar\'dan geri yüklenebilir); iOS ana ekrandan silmenin verileri sildiği uyarısı; iOS\'ta alt menünün bir düzelip bir bozulması --vh düzeltmesiyle giderildi'},
  {v:'1.13.0',d:'22.07.2026',n:'iOS ana ekran (standalone) modunda menü düğmelerinin altına basma gerektirmesi ve yeniden açılışta alttaki boşluk kesin çözüldü: sabit (fixed) konumlu üst/alt barlar kaldırılıp flexbox uygulama kabuğuna geçildi — header ve alt menü artık akış içinde sabit, yalnızca orta alan kayar'},
@@ -923,10 +926,17 @@ async function fetchRates(){
     let ok=0;Object.entries(m).forEach(([k,v])=>{if(v>0){S.rates[k]=v;ok++}});
     if(!ok)throw 0;
     S.ratesDate=new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    localStorage.setItem(RATES_FETCH_KEY,String(Date.now()));
     save();renderAll();toast(ok+' kur güncellendi ✓');
   }catch(e){
     toast('Kur çekilemedi — elle girebilirsiniz');
   }
+}
+/* Açılışta her seferinde değil, son başarılı çekimden RATES_FETCH_MINGAP
+   geçtiyse kur çekilir; elle "İnternetten çek" butonu her zaman çalışır (v1.14.2) */
+function autoFetchRatesIfStale(){
+  const last=parseInt(localStorage.getItem(RATES_FETCH_KEY)||'0',10);
+  if(Date.now()-last>RATES_FETCH_MINGAP)fetchRates();
 }
 
 /* ═══════════ BULUT YEDEKLEME (opsiyonel) ═══════════ */
@@ -1216,7 +1226,7 @@ setTimeout(setVH,1000);
 (async()=>{
   await handleAuthRedirect();
   await initialSync();
-  fetchRates();
+  autoFetchRatesIfStale();
 })();
 </script>
 </body>
