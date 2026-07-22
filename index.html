@@ -30,8 +30,11 @@
    (asla kaymaz), yalnızca ortadaki #app kaydırılır. Hiçbir yerde
    position:fixed nav/header YOK. */
 html{height:100%}
+/* v1.14.4: yükseklik ARTIK ÖLÇÜLMÜYOR. position:fixed + inset:0 ile kabuk doğrudan
+   viewport kutusuna kilitlenir; iOS'un soğuk açılışta eksik raporladığı innerHeight
+   değerine hiç bağlı kalmadığımız için alt menü asla yukarıda kalmaz. */
 body{
-  height:100vh;height:100dvh;height:var(--vh,100dvh);
+  position:fixed;top:0;left:0;right:0;bottom:0;
   display:flex;flex-direction:column;overflow:hidden;
   font-family:'Manrope',system-ui,sans-serif;background:var(--ivory);color:var(--ink);
   font-size:15px;line-height:1.5;
@@ -384,8 +387,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.14.3';
+const APP_VERSION='1.14.4';
 const CHANGELOG=[
+ {v:'1.14.4',d:'22.07.2026',n:'iOS ana ekranda alt menünün ekranın dibine oturmayıp yukarıda kalması KESİN olarak düzeltildi: pencere yüksekliğini JS ile ölçme yöntemi tamamen kaldırıldı, uygulama kabuğu artık CSS ile doğrudan ekran kutusuna sabitleniyor (position:fixed) — iOS\'un yanlış raporladığı yüksekliğe hiç bağlı değil'},
  {v:'1.14.3',d:'22.07.2026',n:'iOS ana ekranda ilk açılışta alt menünün bazen yukarıda kalması yeniden düzeltildi: pencere yüksekliği açılıştan sonra ~2,5 sn boyunca her karede ölçülüp görülen en büyük değer uygulanıyor; iOS\'un ilk anda eksik raporladığı yükseklik artık asla kalıcı olmuyor (uygulama öne geldiğinde de yeniden ölçülüyor)'},
  {v:'1.14.2',d:'22.07.2026',n:'Açılışta kur çekme artık her seferinde değil, son başarılı çekimden 3 saat geçtiyse yapılıyor — gereksiz ağ isteği azaltıldı; elle "İnternetten çek" butonu her zaman çalışmaya devam ediyor'},
  {v:'1.14.1',d:'22.07.2026',n:'iOS ana ekranda soğuk açılışta alt menünün yukarıda kalması düzeltildi: --vh artık load/orientationchange olaylarında ve gecikmeli (50/300/1000ms) yeniden ölçülüyor, böylece iOS\'un ilk anda yanlış raporladığı pencere yüksekliği düzeltiliyor'},
@@ -1209,33 +1213,9 @@ document.querySelectorAll('#b-filter button').forEach(b=>b.onclick=()=>{
 
 document.getElementById('eyebtn').textContent=S.hide?'🙈':'👁️';
 renderAll();
-/* iOS standalone'da 100dvh yeniden açılışta yanlış hesaplanabiliyor ("alt kısım bir düzelip
-   bir bozuluyor") — gerçek pencere yüksekliği JS ile --vh değişkenine yazılır (v1.14.0) */
-/* iOS ana ekran soğuk açılışta innerHeight ilk saniyelerde EKSİK rapor edilebiliyor; tek tek
-   zamanlayıcılarla ölçmek bazen yetmiyordu (v1.14.1). Artık "oturma" penceresi boyunca
-   (~2.5 sn) her karede ölçüp GÖRÜLEN EN BÜYÜK yükseklik uygulanır — böylece eksik ölçüm
-   asla uygulanmaz, alt menü yukarıda kalmaz. Pencere kapandıktan sonra ölçüm doğrudan
-   uygulanır (gerçek boyut değişimleri: döndürme, masaüstü pencere boyutu). (v1.14.3) */
-let _vhBest=0,_vhSettleEnd=0,_vhRaf=0;
-function applyVH(h){if(h>0&&h!==_vhBest){_vhBest=h;document.documentElement.style.setProperty('--vh',h+'px')}}
-function setVH(){
-  const h=window.innerHeight||0;
-  if(performance.now()<_vhSettleEnd){if(h>_vhBest)applyVH(h)}
-  else{_vhBest=0;applyVH(h)}
-}
-function vhSettle(ms){
-  _vhSettleEnd=performance.now()+(ms||2500);
-  if(_vhRaf)return;
-  const tick=()=>{setVH();if(performance.now()<_vhSettleEnd)_vhRaf=requestAnimationFrame(tick);else _vhRaf=0};
-  _vhRaf=requestAnimationFrame(tick);
-}
-setVH();vhSettle(2500);
-window.addEventListener('resize',setVH);
-if(window.visualViewport)visualViewport.addEventListener('resize',setVH);
-window.addEventListener('load',()=>vhSettle(2500));
-window.addEventListener('pageshow',()=>vhSettle(1500));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)vhSettle(1500)});
-window.addEventListener('orientationchange',()=>{_vhBest=0;_vhSettleEnd=0;setVH();vhSettle(1000)});
+/* v1.14.4: --vh ölçüm mekanizması TAMAMEN KALDIRILDI. Kabuk artık CSS'te
+   position:fixed;inset:0 ile viewport'a kilitleniyor; JS ile yükseklik ölçmek
+   (v1.14.0-1.14.3) iOS soğuk açılışında hep yarışı kaybediyordu. */
 /* KRİTİK SIRA: kur çekme save() tetiklediği için bulut kararı verilmeden ÇALIŞTIRILMAZ */
 (async()=>{
   await handleAuthRedirect();
