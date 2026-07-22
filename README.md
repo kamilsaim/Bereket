@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.14.1-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.14.2-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -59,7 +59,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
 - **Gizlilik modu** 🙈 — tek dokunuşla tüm tutarları gizleyin
-- **Uygulama her açıldığında kurlar otomatik internetten güncellenir**, sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
+- **Kurlar otomatik internetten güncellenir** — açılışta son çekimden 3 saat geçtiyse (gereksiz istekleri önlemek için), sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
 - JSON yedek alma / geri yükleme
 - Silme gibi geri alınamaz işlemler **uygulama içi onay penceresiyle** yapılır (tarayıcı popup'u değil)
 
@@ -95,6 +95,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.14.2** | 22.07.2026 | Açılışta kur çekme artık her seferinde değil, son başarılı çekimden 3 saat geçtiyse yapılıyor — gereksiz ağ isteği azaltıldı |
 | **v1.14.1** | 22.07.2026 | iOS ana ekranda soğuk açılışta alt menünün yukarıda kalması düzeltildi: pencere yüksekliği load/orientationchange olaylarında ve gecikmeli olarak yeniden ölçülüyor |
 | **v1.14.0** | 22.07.2026 | Veri kaybı koruması: açılışta bulut önce okunur, boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılmaz; günlük otomatik yerel yedekler (son 7 gün, Ayarlar'dan geri yüklenebilir); iOS ana ekrandan silmenin verileri sildiği uyarısı |
 | **v1.13.0** | 22.07.2026 | iOS ana ekran (standalone) modunda menü düğmelerinin altına basma gerektirmesi ve yeniden açılışta alttaki boşluk kesin çözüldü: flexbox uygulama kabuğuna geçildi |
