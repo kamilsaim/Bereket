@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="bereket-logo.png" alt="Bereket Logo" width="160">
+<img src="iclogo.png" alt="Bereket Logo" width="160">
 
 # Bereket
 
