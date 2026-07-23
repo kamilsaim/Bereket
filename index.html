@@ -46,29 +46,34 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 #app{
-  flex:1 1 auto;min-height:0;
+  flex:1 1 auto;min-height:0;position:relative;
   overflow-y:auto;overflow-x:hidden;
   overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
+  /* başlık absolute olduğu için içerik en tepeden başlar; bu dolgu içeriği
+     başlığın altına iter, kaydırınca içerik başlığın arkasına kayar.
+     Kesin değer JS'te setHeaderPad ile header yüksekliğine eşitlenir. */
+  padding-top:calc(94px + env(safe-area-inset-top,0px));
 }
 h1,h2,h3,.display{font-family:'Marcellus',serif;font-weight:400;letter-spacing:.02em}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
 /* ---------- Kemer (arch) başlık ---------- */
 header{
-  flex:0 0 auto; /* sabit yükseklik, asla kaymaz — üst bar daima görünür */
+  /* v1.15.0: başlık akıştan çıkarıldı → içerik başlığın arkasına doğru kayar.
+     #app'in padding-top'u JS ile başlık yüksekliğine eşitlenir (setHeaderPad). */
+  position:absolute;top:0;left:0;right:0;z-index:40;
   background:linear-gradient(170deg,var(--green) 0%,var(--green-dk) 100%);
-  color:#fff;padding:calc(14px + env(safe-area-inset-top,0px)) 20px 54px;
-  position:relative;z-index:40;
+  color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 24px;
 }
-header::after{ /* kemer silueti */
-  content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
+header::after{ /* kemer silueti — inceltildi (v1.15.0) */
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:16px;
   background:var(--ivory);
   clip-path:ellipse(120% 100% at 50% 100%);
 }
 .hrow{display:flex;align-items:center;gap:12px}
-.hrow img{width:44px;height:54px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
-.hrow h1{font-size:26px;letter-spacing:.06em}
+.hrow img{width:38px;height:46px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}
+.hrow h1{font-size:23px;letter-spacing:.06em}
 .hrow small{display:block;font-family:'Manrope';font-size:11.5px;opacity:.75;letter-spacing:.04em;margin-top:-2px}
 
 main{padding:0 16px 24px;max-width:560px;margin:0 auto}
@@ -392,8 +397,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.14.8';
+const APP_VERSION='1.15.0';
 const CHANGELOG=[
+ {v:'1.15.0',d:'23.07.2026',n:'Üst yeşil başlık artık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi'},
  {v:'1.14.8',d:'23.07.2026',n:'Logolar yenilendi: uygulama içi ve tarayıcı/GitHub sekme ikonu iclogo, ana ekran (apple-touch-icon) logosu ayrı logo2 görseli oldu'},
  {v:'1.14.7',d:'22.07.2026',n:'Alt menü hizası düzeldiği doğrulandı; Ayarlar\'daki geçici "Ekran Tanılama" kartı kaldırıldı'},
  {v:'1.14.6',d:'22.07.2026',n:'Alt menünün ekranın dibine oturmaması sorununun GERÇEK nedeni bulundu ve düzeltildi: iOS status bar ayarı "black-translucent" iken sayfa ekranın tepesinden başlıyor ama yüksekliği status bar kadar eksik bildiriliyordu, bu yüzden dipte 59pt ölü bant kalıyordu. Ayar "default" yapıldı'},
@@ -1199,6 +1205,15 @@ function runConfirm(){const cb=_confirmCb;_confirmCb=null;closeSheet();if(cb)cb(
    medya sorgusu da kontrol edilir (dokunmatik ekranların neredeyse tamamı bunu karşılar). */
 const _isCoarsePointer = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
 const _app=document.getElementById('app');
+/* Başlık akıştan çıkarıldığı için #app'in üst dolgusunu başlığın gerçek
+   yüksekliğine eşitle (v1.15.0). NOT: bu, elemanın kendi offsetHeight'ıdır —
+   v1.14.x'te yasaklanan viewport/innerHeight ölçümüyle ilgisi yoktur. */
+const _hdr=document.querySelector('header');
+function setHeaderPad(){ if(_hdr&&_app) _app.style.paddingTop=_hdr.offsetHeight+'px'; }
+setHeaderPad();
+window.addEventListener('resize',setHeaderPad);
+window.addEventListener('orientationchange',()=>setTimeout(setHeaderPad,120));
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(setHeaderPad);
 if(!('ontouchstart' in window) && !navigator.maxTouchPoints && !_isCoarsePointer){
   document.addEventListener('wheel',function(e){
     if(e.target.closest('.sheet'))return; // alt panel kendi kaydırmasını yönetsin
