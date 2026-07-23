@@ -13,6 +13,8 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
+### 🌐 [kamilsaim.web.app](https://kamilsaim.web.app)
+
 </div>
 
 ---
@@ -67,11 +69,11 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 
 Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 
-1. `bereket.html` dosyasını telefonunuzun tarayıcısında açın
+1. **[kamilsaim.web.app](https://kamilsaim.web.app)** adresini (veya `index.html` dosyasını) telefonunuzun tarayıcısında açın
 2. Tarayıcı menüsünden **"Ana ekrana ekle"** deyin
 3. Artık uygulama gibi tam ekran açılır ✅
 
-> 💡 GitHub Pages üzerinden de yayınlayabilirsiniz; internet yalnızca kur çekmek için gerekir, uygulama çevrimdışı da çalışır.
+> 💡 Uygulama **[kamilsaim.web.app](https://kamilsaim.web.app)** üzerinde canlıdır; internet yalnızca kur çekmek için gerekir, uygulama çevrimdışı da çalışır.
 
 ## 🔒 Gizlilik
 
