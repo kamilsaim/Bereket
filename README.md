@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.14.7-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.15.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -95,6 +95,9 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.15.0** | 23.07.2026 | Üst yeşil başlık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi |
+| **v1.14.8** | 23.07.2026 | Logolar yenilendi: uygulama içi ve tarayıcı/GitHub sekme ikonu iclogo, ana ekran (apple-touch-icon) logosu ayrı logo2 görseli oldu |
+| **v1.14.7** | 22.07.2026 | Alt menü hizasının düzeldiği doğrulandı; Ayarlar'daki geçici "Ekran Tanılama" kartı kaldırıldı |
 | **v1.14.6** | 22.07.2026 | Alt menünün iOS'ta ekranın dibine oturmaması **kesin olarak çözüldü**: kök neden `black-translucent` status bar ayarıydı (sayfa ekranın tepesinden başlıyor ama yüksekliği eksik bildiriliyordu, dipte 59pt ölü bant kalıyordu) |
 | **v1.14.4** | 22.07.2026 | Alt menünün iOS'ta ekranın dibine oturmayıp yukarıda kalması kesin olarak düzeltildi: yüksekliği JS ile ölçme yöntemi kaldırıldı, kabuk CSS ile doğrudan ekrana sabitleniyor |
 | **v1.14.3** | 22.07.2026 | iOS ana ekranda ilk açılışta alt menünün yukarıda kalması yeniden düzeltildi (yükseklik ~2,5 sn boyunca her karede ölçülüp en büyük değer uygulanıyor) |
