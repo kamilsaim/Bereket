@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.15.2-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.16.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -101,6 +101,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.16.0** | 24.07.2026 | Play Store gereksinimleri: uygulama içinden kalıcı hesap silme (Supabase Edge Function ile) ve web'den erişilebilen gizlilik politikası sayfası eklendi |
 | **v1.15.2** | 24.07.2026 | Ana ekran ikonu iclogo.png ile güncellendi; Capacitor ile Android APK kabuğu hazırlandı; APK içinden Google girişi için deep-link akışı eklendi |
 | **v1.15.1** | 23.07.2026 | Ana ekran (apple-touch-icon) logosu açık renkli logo2 görseliyle güncellendi |
 | **v1.15.0** | 23.07.2026 | Üst yeşil başlık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi |

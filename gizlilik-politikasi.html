@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bereket — Gizlilik Politikası</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--green:#1E5631;--green-dk:#14402a;--gold:#C9A227;--ivory:#FAF7F0;--red:#B4432F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ivory);color:#2b2b2b;
+       font-family:'Manrope',-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.65}
+  header{background:var(--green);color:var(--ivory);padding:34px 20px 40px;text-align:center;
+         border-radius:0 0 26px 26px}
+  header h1{font-family:'Marcellus',serif;margin:12px 0 4px;font-size:26px;font-weight:400}
+  header p{margin:0;opacity:.85;font-size:14px}
+  .logo{width:64px;height:64px;border-radius:50%;background:var(--gold);margin:0 auto;
+        display:flex;align-items:center;justify-content:center;font-size:32px}
+  main{max-width:720px;margin:0 auto;padding:24px 20px 60px}
+  h2{font-family:'Marcellus',serif;color:var(--green-dk);font-weight:400;font-size:20px;
+     margin:30px 0 10px;border-bottom:2px solid rgba(201,162,39,.4);padding-bottom:6px}
+  p,li{font-size:15px}
+  ul{padding-left:20px}
+  a{color:var(--green);font-weight:600}
+  .box{background:#fff;border:1px solid rgba(30,86,49,.15);border-radius:14px;padding:16px 18px;margin:14px 0}
+  .box.warn{border-color:rgba(180,67,47,.35);background:#fdf6f4}
+  .muted{color:#666;font-size:13px}
+  footer{text-align:center;padding:24px 20px 40px;color:#777;font-size:13px}
+  code{background:#eee;padding:2px 6px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🕌</div>
+  <h1>Bereket — Gizlilik Politikası</h1>
+  <p>Son güncelleme: 24 Temmuz 2026</p>
+</header>
+<main>
+  <p><b>Bereket</b>, zekât ve varlık takibi için geliştirilmiş kişisel bir mobil web uygulamasıdır. Bu politika, uygulamanın hangi verileri işlediğini ve bu verilerin nasıl silinebileceğini açıklar.</p>
+
+  <h2>Toplanan Veriler</h2>
+  <p>Bereket, varsayılan olarak <b>hiçbir veriyi sunucuya göndermez</b>. Girdiğiniz tüm varlık, borç, alacak, emanet ve zekât kayıtları yalnızca <b>kendi cihazınızda</b> (tarayıcı <code>localStorage</code>'ında) saklanır.</p>
+  <p>Yalnızca <b>isteğe bağlı bulut yedekleme</b> özelliğini kullanmayı seçerseniz aşağıdaki veriler işlenir:</p>
+  <ul>
+    <li><b>Ad, e-posta adresi</b> — Google ile giriş yaptığınızda, hesabınızı tanımlamak için.</li>
+    <li><b>Uygulama verileriniz</b> (varlık/borç/zekât kayıtlarınız) — yalnızca sizin erişebileceğiniz şekilde bulutta yedeklenir.</li>
+  </ul>
+  <p>Konum, kamera, kişiler veya reklam kimliği gibi hiçbir hassas veri toplanmaz.</p>
+
+  <h2>Verilerin Kullanımı</h2>
+  <ul>
+    <li>Hesabınızı tanımlamak ve verilerinizi cihazlar arasında senkronize etmek.</li>
+    <li>Veriler <b>satılmaz</b>, üçüncü taraf pazarlamasında <b>kullanılmaz</b>.</li>
+  </ul>
+
+  <h2>Üçüncü Taraflar</h2>
+  <ul>
+    <li><b>Google</b> — yalnızca giriş (OAuth) için; ad ve e-posta bilgisi alınır.</li>
+    <li><b>Supabase</b> — bulut yedeğinizin saklandığı altyapı. Veriler HTTPS ile şifreli aktarılır ve satır bazlı güvenlik (RLS) ile yalnızca size özeldir.</li>
+    <li><b>finans.truncgil.com</b> — güncel altın/döviz kurlarını çekmek için (kişisel veri gönderilmez).</li>
+  </ul>
+
+  <h2>Hesabınızı ve Verilerinizi Silme</h2>
+  <div class="box warn">
+    <p style="margin-top:0"><b>Uygulama içinden:</b> Ayarlar → Bulut Yedekleme → <b>“Hesabımı Kalıcı Olarak Sil”</b> düğmesiyle hesabınızı ve buluttaki tüm yedeğinizi kalıcı olarak silebilirsiniz. Bu işlem geri alınamaz.</p>
+    <p style="margin-bottom:0"><b>Uygulamasız / web üzerinden talep:</b> Uygulamaya erişiminiz yoksa, hesabınızın ve verilerinizin silinmesini talep etmek için aşağıdaki adrese e-posta gönderebilirsiniz. Talebiniz en geç 30 gün içinde yerine getirilir.</p>
+  </div>
+  <div class="box">
+    <p style="margin:0">📧 Hesap silme talebi: <a href="mailto:saimkamil@gmail.com?subject=Bereket%20Hesap%20Silme%20Talebi">saimkamil@gmail.com</a></p>
+  </div>
+  <p class="muted">Cihazınızdaki yerel veriler, uygulamayı sildiğinizde veya Ayarlar → “Tüm Verileri Sil” ile temizlenir.</p>
+
+  <h2>İletişim</h2>
+  <p>Bu politika veya verileriniz hakkında sorularınız için: <a href="mailto:saimkamil@gmail.com">saimkamil@gmail.com</a></p>
+</main>
+<footer>
+  <p>Bereket · Zekât · Varlık · Borç Takibi<br>
+  <a href="index.html">← Uygulamaya dön</a></p>
+</footer>
+</body>
+</html>

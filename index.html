@@ -397,8 +397,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.15.2';
+const APP_VERSION='1.16.0';
 const CHANGELOG=[
+ {v:'1.16.0',d:'24.07.2026',n:'Play Store gereksinimleri: uygulama içinden "Hesabımı Kalıcı Olarak Sil" (iki aşamalı onay + Supabase delete-account Edge Function ile hesap ve bulut yedeği kalıcı silme); web üzerinden erişilebilen gizlilik-politikasi.html sayfası eklendi'},
  {v:'1.15.2',d:'24.07.2026',n:'Ana ekran (apple-touch-icon) logosu iclogo.png görseliyle güncellendi; Capacitor Android APK iskeleti hazırlandı; APK içinde Google girişi için deep-link akışı eklendi (sistem tarayıcısında açılıp com.kamilsaim.bereket://auth-callback ile dönüş)'},
  {v:'1.15.1',d:'23.07.2026',n:'Ana ekran (apple-touch-icon) logosu açık renkli logo2 görseliyle güncellendi'},
  {v:'1.15.0',d:'23.07.2026',n:'Üst yeşil başlık artık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi'},
@@ -976,7 +977,9 @@ function renderCloud(){
     el.innerHTML=`<p class="mini" style="margin-top:0">Giriş yapıldı: <b>${esc(s.user.email||'')}</b><br>Son senkron: ${last?new Date(last).toLocaleString('tr-TR'):'—'}</p>
     <button class="btn primary" style="margin-top:4px" onclick="cloudPush()">📤 Şimdi Buluta Yedekle</button>
     <button class="btn ghost" onclick="cloudPull()">☁️ Buluttan Geri Yükle</button>
-    <button class="btn danger" onclick="cloudLogout()">Çıkış Yap</button>`;
+    <button class="btn ghost" onclick="cloudLogout()">Çıkış Yap</button>
+    <button class="btn danger" style="margin-top:10px" onclick="deleteAccount()">🗑️ Hesabımı Kalıcı Olarak Sil</button>
+    <p class="mini" style="margin-top:6px;opacity:.75">Hesabınızı ve buluttaki tüm yedeğinizi kalıcı olarak siler. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
   }
 }
 
@@ -992,6 +995,45 @@ function cloudLoginGoogle(){
   location.href=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);
 }
 
+// Play Store zorunluluğu: uygulama içinden hesap + bulut verisi kalıcı silme (iki aşamalı onay)
+function deleteAccount(){
+  sheet(`<h3>⚠️ Hesabı Sil</h3>
+  <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Şunlar kalıcı olarak silinir:</p>
+  <ul class="mini" style="margin-top:4px;padding-left:18px;line-height:1.6">
+    <li>Google ile açtığınız hesabınız</li>
+    <li>Buluttaki tüm yedeğiniz (Supabase kaydınız)</li>
+  </ul>
+  <p class="mini">Bu cihazdaki yerel verileriniz cihazda kalır; onları ayrıca "Tüm Verileri Sil" ile temizleyebilirsiniz.</p>
+  <button class="btn danger" onclick="deleteAccountConfirm()">Devam et →</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+function deleteAccountConfirm(){
+  sheet(`<h3>Son onay</h3>
+  <p class="mini" style="margin-top:0">Hesabınızı ve buluttaki tüm yedeğinizi kalıcı olarak silmek istediğinize <b>kesin emin misiniz?</b> Bu işlem geri alınamaz.</p>
+  <button class="btn danger" onclick="deleteAccountRun()">Evet, hesabımı kalıcı olarak sil</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+async function deleteAccountRun(){
+  closeSheet();
+  const s=await sbToken();
+  if(!s){toast('Önce Google ile giriş yapın');return}
+  toast('Hesap siliniyor…');
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/delete-account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'}});
+    if(!r.ok){
+      // Edge Function henüz kurulu değilse en azından bulut satırını sil (RLS ile kendi satırı)
+      try{await fetch(SB_URL+'/rest/v1/brkt_data',{method:'DELETE',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});}catch(e){}
+      const msg=await r.text().catch(()=>'');
+      throw new Error(msg||('HTTP '+r.status));
+    }
+    setSession(null);localStorage.removeItem(CLOUD_SYNC_KEY);
+    toast('Hesabınız silindi');
+    renderCloud();
+  }catch(e){
+    toast('Hesap silinemedi: '+(e.message||'sunucu hatası'));
+    renderCloud();
+  }
+}
 async function cloudLogout(){
   const s=getSession();
   if(s){try{await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}})}catch(e){}}
