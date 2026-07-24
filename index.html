@@ -979,7 +979,7 @@ function renderCloud(){
     <button class="btn ghost" onclick="cloudPull()">☁️ Buluttan Geri Yükle</button>
     <button class="btn ghost" onclick="cloudLogout()">Çıkış Yap</button>
     <button class="btn danger" style="margin-top:10px" onclick="deleteAccount()">🗑️ Hesabımı Kalıcı Olarak Sil</button>
-    <p class="mini" style="margin-top:6px;opacity:.75">Hesabınızı ve buluttaki tüm yedeğinizi kalıcı olarak siler. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
+    <p class="mini" style="margin-top:6px;opacity:.75">Buluttaki Bereket verilerinizi kalıcı olarak siler; başka uygulamada veriniz yoksa Google hesabınız da silinir. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
   }
 }
 
@@ -998,12 +998,8 @@ function cloudLoginGoogle(){
 // Play Store zorunluluğu: uygulama içinden hesap + bulut verisi kalıcı silme (iki aşamalı onay)
 function deleteAccount(){
   sheet(`<h3>⚠️ Hesabı Sil</h3>
-  <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Şunlar kalıcı olarak silinir:</p>
-  <ul class="mini" style="margin-top:4px;padding-left:18px;line-height:1.6">
-    <li>Google ile açtığınız hesabınız</li>
-    <li>Buluttaki tüm yedeğiniz</li>
-  </ul>
-  <p class="mini" style="opacity:.85">ℹ️ Bu Google hesabıyla aynı sistemdeki diğer uygulamalara (ör. giriş yaptıysanız) da giriş yapıyorsanız, hesap silindiğinde <b>onların bulut verisi de silinir</b> — çünkü hepsi aynı hesabı paylaşır.</p>
+  <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Buluttaki <b>Bereket verileriniz</b> kalıcı olarak silinir.</p>
+  <p class="mini" style="opacity:.85">ℹ️ Google hesabınız yalnızca başka hiçbir uygulamada veriniz kalmadıysa tamamen silinir; aksi halde hesabınız korunur ve sadece Bereket verisi silinir.</p>
   <p class="mini">Bu cihazdaki yerel verileriniz cihazda kalır; onları ayrıca "Tüm Verileri Sil" ile temizleyebilirsiniz.</p>
   <button class="btn danger" onclick="deleteAccountConfirm()">Devam et →</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
@@ -1018,15 +1014,16 @@ async function deleteAccountRun(){
   closeSheet();
   const s=await sbToken();
   if(!s){toast('Önce Google ile giriş yapın');return}
-  toast('Hesap siliniyor…');
+  toast('Siliniyor…');
   try{
     const r=await fetch(SB_URL+'/functions/v1/bereket-delete-account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'}});
     if(!r.ok){
       const msg=await r.text().catch(()=>'');
       throw new Error(msg||('HTTP '+r.status));
     }
+    let acc=false;try{const j=await r.json();acc=!!j.accountDeleted;}catch(e){}
     setSession(null);localStorage.removeItem(CLOUD_SYNC_KEY);
-    toast('Hesabınız silindi');
+    toast(acc?'Hesabınız ve Bereket verileriniz silindi':'Bereket bulut verileriniz silindi (hesabınız diğer uygulamalarda kullanıldığı için korundu)');
     renderCloud();
   }catch(e){
     toast('Hesap silinemedi: '+(e.message||'sunucu hatası'));
