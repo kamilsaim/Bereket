@@ -1001,8 +1001,9 @@ function deleteAccount(){
   <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Şunlar kalıcı olarak silinir:</p>
   <ul class="mini" style="margin-top:4px;padding-left:18px;line-height:1.6">
     <li>Google ile açtığınız hesabınız</li>
-    <li>Buluttaki tüm yedeğiniz (Supabase kaydınız)</li>
+    <li>Buluttaki tüm yedeğiniz</li>
   </ul>
+  <p class="mini" style="opacity:.85">ℹ️ Bu Google hesabıyla aynı sistemdeki diğer uygulamalara (ör. giriş yaptıysanız) da giriş yapıyorsanız, hesap silindiğinde <b>onların bulut verisi de silinir</b> — çünkü hepsi aynı hesabı paylaşır.</p>
   <p class="mini">Bu cihazdaki yerel verileriniz cihazda kalır; onları ayrıca "Tüm Verileri Sil" ile temizleyebilirsiniz.</p>
   <button class="btn danger" onclick="deleteAccountConfirm()">Devam et →</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
@@ -1019,10 +1020,8 @@ async function deleteAccountRun(){
   if(!s){toast('Önce Google ile giriş yapın');return}
   toast('Hesap siliniyor…');
   try{
-    const r=await fetch(SB_URL+'/functions/v1/delete-account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'}});
+    const r=await fetch(SB_URL+'/functions/v1/bereket-delete-account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'}});
     if(!r.ok){
-      // Edge Function henüz kurulu değilse en azından bulut satırını sil (RLS ile kendi satırı)
-      try{await fetch(SB_URL+'/rest/v1/brkt_data',{method:'DELETE',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}});}catch(e){}
       const msg=await r.text().catch(()=>'');
       throw new Error(msg||('HTTP '+r.status));
     }
