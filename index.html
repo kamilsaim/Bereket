@@ -399,7 +399,7 @@ const ASSET_TYPES={
 };
 const APP_VERSION='1.15.2';
 const CHANGELOG=[
- {v:'1.15.2',d:'24.07.2026',n:'Ana ekran (apple-touch-icon) logosu iclogo.png görseliyle güncellendi; Capacitor Android APK iskeleti hazırlandı'},
+ {v:'1.15.2',d:'24.07.2026',n:'Ana ekran (apple-touch-icon) logosu iclogo.png görseliyle güncellendi; Capacitor Android APK iskeleti hazırlandı; APK içinde Google girişi için deep-link akışı eklendi (sistem tarayıcısında açılıp com.kamilsaim.bereket://auth-callback ile dönüş)'},
  {v:'1.15.1',d:'23.07.2026',n:'Ana ekran (apple-touch-icon) logosu açık renkli logo2 görseliyle güncellendi'},
  {v:'1.15.0',d:'23.07.2026',n:'Üst yeşil başlık artık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi'},
  {v:'1.14.8',d:'23.07.2026',n:'Logolar yenilendi: uygulama içi ve tarayıcı/GitHub sekme ikonu iclogo, ana ekran (apple-touch-icon) logosu ayrı logo2 görseli oldu'},
@@ -981,6 +981,13 @@ function renderCloud(){
 }
 
 function cloudLoginGoogle(){
+  // APK (Capacitor WebView) → Google girişi WebView'da engelli; sistem tarayıcısında aç, deep link ile dön
+  if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){
+    const redirect='com.kamilsaim.bereket://auth-callback';
+    const url=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);
+    window.Capacitor.Plugins.Browser.open({url,windowName:'_self'});
+    return;
+  }
   const redirect=location.origin+location.pathname;
   location.href=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);
 }
@@ -1119,11 +1126,7 @@ async function autoCloudSync(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoCloudSync()});
 setInterval(autoCloudSync,20000);
 
-async function handleAuthRedirect(){
-  if(!location.hash.includes('access_token'))return;
-  const p=new URLSearchParams(location.hash.slice(1));
-  const at=p.get('access_token'),rt=p.get('refresh_token'),ei=parseInt(p.get('expires_in')||'3600',10);
-  history.replaceState(null,'',location.pathname+location.search);
+async function processAuthTokens(at,rt,ei){
   if(!at)return;
   try{
     const ur=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+at}});
@@ -1133,6 +1136,13 @@ async function handleAuthRedirect(){
     toast('Google ile giriş yapıldı ✓');
     await cloudSyncPrompt();
   }catch(e){toast('Giriş sırasında hata oluştu')}
+}
+async function handleAuthRedirect(){
+  if(!location.hash.includes('access_token'))return;
+  const p=new URLSearchParams(location.hash.slice(1));
+  const at=p.get('access_token'),rt=p.get('refresh_token'),ei=parseInt(p.get('expires_in')||'3600',10);
+  history.replaceState(null,'',location.pathname+location.search);
+  await processAuthTokens(at,rt,ei);
 }
 
 /* ═══════════ YEDEK ═══════════ */
@@ -1243,6 +1253,20 @@ renderAll();
    position:fixed;inset:0 ile viewport'a kilitleniyor; JS ile yükseklik ölçmek
    (v1.14.0-1.14.3) iOS soğuk açılışında hep yarışı kaybediyordu. */
 /* KRİTİK SIRA: kur çekme save() tetiklediği için bulut kararı verilmeden ÇALIŞTIRILMAZ */
+// APK: Google girişi sistem tarayıcısında tamamlanınca deep link ile döner; token'ı burada yakala
+if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+  const {App,Browser}=window.Capacitor.Plugins;
+  App.addListener('appUrlOpen',async ({url})=>{
+    if(url&&url.includes('auth-callback')){
+      try{if(Browser)await Browser.close();}catch(e){}
+      const hash=url.split('#')[1];
+      if(hash){
+        const p=new URLSearchParams(hash);
+        await processAuthTokens(p.get('access_token'),p.get('refresh_token'),parseInt(p.get('expires_in')||'3600',10));
+      }
+    }
+  });
+}
 (async()=>{
   await handleAuthRedirect();
   await initialSync();
