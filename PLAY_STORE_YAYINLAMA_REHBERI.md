@@ -35,6 +35,23 @@ Google Play, **hesap oluşturmaya izin veren her uygulamadan** şunu zorunlu kı
 
 **Web tarafı (her projede eksiksiz yapılmalı):** Gizlilik politikası sayfasına, uygulamasız da erişilebilen bir "hesap silme talebi" yöntemi eklenmeli — en basit hali bir e-posta adresi veya iletişim formu olabilir, Data Safety formunda bu URL istenir.
 
+### 2.a. Paylaşılan Supabase projesi + izole hesap silme (Bereket'te yaşandı, KRİTİK)
+
+Birden çok küçük uygulama **tek bir Supabase projesini ve tek `auth.users` tablosunu** paylaşabilir (ör. Bereket + Borç Defteri + Hediye + Arıcılık hepsi `beebook` projesinde; her uygulama kendi tablo önekini kullanır: `brkt_data`, `borc_*`, `hediye_*`, `bd_*`). Aynı Google hesabıyla giriş yapıldığında hepsi **aynı kullanıcı kaydını** paylaşır. Bu, hesap silmede iki büyük tuzak doğurur:
+
+1. **Edge Function isim çakışması.** İki uygulama da fonksiyonunu `delete-account` diye deploy ederse biri diğerini **sessizce ezer** (Supabase fonksiyonları proje bazında tek isim alanı). Her uygulama fonksiyonunu **benzersiz adla** deploy etmeli: `bereket-delete-account`, `borc-delete-account` gibi. Belirtisi: fonksiyonun `version` numarası sen bir kez deploy ettiğin halde 2+ görünür.
+
+2. **`auth.admin.deleteUser` paylaşılan hesabı siler → yanlış kurgu tüm uygulamaların verisini götürür.** Naif fonksiyon "kendi tablomu sil + `deleteUser`" yapar; ama `deleteUser` o tek ortak kimliği sildiği için, `ON DELETE CASCADE` olan diğer uygulama tabloları da yok olur (veya NO ACTION ise `deleteUser` FK ihlaliyle **başarısız** olur).
+
+**Doğru desen — "akıllı / izole silme":** Her uygulamanın Edge Function'ı şunu yapar:
+- (1) **Her zaman** yalnızca kendi tablolarını siler (`brkt_data` / `borc_*` …).
+- (2) Diğer uygulamaların tablolarında o `user_id`'ye ait satır kalmış mı diye **sayım yapar** (`select('user_id',{count:'exact',head:true}).eq('user_id',uid)`).
+- (3) **Hiç başka veri yoksa** `deleteUser` ile ortak hesabı da siler (`account_deleted:true`); **varsa** hesabı korur (`kept_for_other_apps:true`) ve sadece kendi verisini silmiş olur.
+
+Böylece bir uygulamadan "hesabımı sil" demek diğer uygulamaların verisini bozmaz; hesap ancak kullanıcının hiçbir uygulamada verisi kalmadığında tamamen silinir. Bu, Play Store'un "hesap + veri silme" şartını karşılar ve paylaşılan mimaride veri kaybını önler. **FK'ları CASCADE'e çevirerek "hepsini birden sil" YAPMA** — izolasyonu bozar; sayım tabanlı akıllı silme tercih edilir.
+
+**İstemci tarafı:** yanıttaki `account_deleted` bayrağına göre farklı toast göster ("hesabınız ve X verileriniz silindi" vs "X verileriniz silindi, hesabınız diğer uygulamalarda kullanıldığı için korundu").
+
 ---
 
 ## 3. Gizlilik Politikası

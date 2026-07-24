@@ -295,6 +295,8 @@ com.KULLANICI.PROJEADI://auth-callback
 ```
 (Mevcut web redirect URL'ini SİLME, bu satırı ek olarak ekle.)
 
+> **Not — supabase-js kullanmayan uygulamalar (Bereket'te doğrulandı):** "Tek dosya" kısıtı yüzünden supabase-js CDN yerine ham `fetch` kullanan uygulamalarda akış aynıdır, sadece SDK çağrısı yerine URL elle kurulur. APK'da giriş: `Browser.open({url: SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent('com.KULLANICI.PROJE://auth-callback'), windowName:'_self'})`. Dönüşte `App.addListener('appUrlOpen', ...)` içinde URL'nin `#` fragment'ından `access_token`/`refresh_token` okunup mevcut oturum-kaydetme fonksiyonuna verilir (web'deki `handleAuthRedirect` ile ortak bir `processAuthTokens(at,rt,ei)` yardımcısına ayır). Web dalında ise eski `location.href=...` akışı korunur.
+
 ### d) index.html'de giriş fonksiyonunu platforma göre dallandır
 ```javascript
 btnGoogleGiris.addEventListener('click', async () => {
@@ -428,6 +430,8 @@ Bu **build.gradle hatası DEĞİL** — dosya kilidi. Gördüğün kırmızılar
 3. Dosyayı telefona gönder (WhatsApp'tan kendine, Drive, USB — hepsi olur)
 4. Telefonda: APK'yı aç → "bilinmeyen kaynaklardan yükleme" izni ver → Kur
 5. Uygulama simgesiyle ana ekrana düşer, GitHub Pages'ten yüklenir
+
+> **Komut satırından derleme (Android Studio açmadan, Bereket'te doğrulandı):** Java PATH'te olmasa bile Android Studio kendi JDK'sını (JBR) paketler. `cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew.bat assembleDebug` ile derlenir. SDK yolu için `android/local.properties`'e `sdk.dir=C:/Users/<kullanici>/AppData/Local/Android/Sdk` (ileri eğik çizgi ile) yaz. Çıktı: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 Her kod değişikliğinde **yeni APK derlemeye gerek yok** (kabuk APK olduğu için) — sadece web tarafını (index.html) GitHub'a push etmek yeterli, telefon açılışta güncel içeriği çeker. **APK'yı yeniden derlemek sadece şu durumlarda gerekir:** simge/isim/izin/native kod değişikliği, `capacitor.config.json` değişikliği, yeni Capacitor eklentisi eklenmesi.
 
