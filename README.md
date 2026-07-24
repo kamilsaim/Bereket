@@ -9,11 +9,13 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.15.0-C9A227)
-![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA-1E5631)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.15.2-C9A227)
+![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
-### 🌐 [kamilsaim.web.app](https://kamilsaim.web.app)
+### 🌐 Uygulamayı Aç → [kamilsaim.github.io/Bereket](https://kamilsaim.github.io/Bereket/)
+
+<sub>👤 Geliştirici / kişisel site: [kamilsaim.web.app](https://kamilsaim.web.app)</sub>
 
 </div>
 
@@ -69,11 +71,13 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 
 Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 
-1. **[kamilsaim.web.app](https://kamilsaim.web.app)** adresini (veya `index.html` dosyasını) telefonunuzun tarayıcısında açın
+1. **[kamilsaim.github.io/Bereket](https://kamilsaim.github.io/Bereket/)** adresini (veya `index.html` dosyasını) telefonunuzun tarayıcısında açın
 2. Tarayıcı menüsünden **"Ana ekrana ekle"** deyin
 3. Artık uygulama gibi tam ekran açılır ✅
 
-> 💡 Uygulama **[kamilsaim.web.app](https://kamilsaim.web.app)** üzerinde canlıdır; internet yalnızca kur çekmek için gerekir, uygulama çevrimdışı da çalışır.
+> 💡 Uygulama **[kamilsaim.github.io/Bereket](https://kamilsaim.github.io/Bereket/)** üzerinde (GitHub Pages) canlıdır; internet yalnızca kur çekmek için gerekir, uygulama çevrimdışı da çalışır.
+>
+> 📱 **Android:** Uygulama ayrıca Capacitor ile bir Android APK kabuğu olarak paketlenmiştir; aynı canlı adresi bir uygulama olarak açar.
 
 ## 🔒 Gizlilik
 
@@ -97,6 +101,8 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.15.2** | 24.07.2026 | Ana ekran ikonu iclogo.png ile güncellendi; Capacitor ile Android APK kabuğu hazırlandı; APK içinden Google girişi için deep-link akışı eklendi |
+| **v1.15.1** | 23.07.2026 | Ana ekran (apple-touch-icon) logosu açık renkli logo2 görseliyle güncellendi |
 | **v1.15.0** | 23.07.2026 | Üst yeşil başlık akıştan çıkarıldı: sayfa kaydırılınca içerik doğrudan başlığın arkasına doğru kayıyor; başlık yüksekliği biraz azaltıldı ve altındaki krem kemer inceltildi |
 | **v1.14.8** | 23.07.2026 | Logolar yenilendi: uygulama içi ve tarayıcı/GitHub sekme ikonu iclogo, ana ekran (apple-touch-icon) logosu ayrı logo2 görseli oldu |
 | **v1.14.7** | 22.07.2026 | Alt menü hizasının düzeldiği doğrulandı; Ayarlar'daki geçici "Ekran Tanılama" kartı kaldırıldı |
