@@ -36,6 +36,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Matrah = varlıklar + alacaklar − borçlar; nisabı aşınca **%2,5 (1/40)** hesaplanır
 - **Kamerî yıl (havl) takibi**: nisaba ulaştığınız tarihi kaydedin, 354 gün dolunca uygulama uyarır
 - Ödediğiniz zekâtları tarihçesiyle kaydedin; **ödenen / kalan** tutar otomatik izlenir, dönem tamamlanınca havl yenilenebilir
+- **Vade hatırlatıcısı** 🔔 — bildirim izni verirseniz kamerî yılın dolmasına 7 gün kala hatırlatılır (Android APK'de uygulama kapalıyken de çalışan gerçek bildirim, web sürümünde uygulamayı açtığınızda)
 
 ### 🤝 Borç / Alacak
 - TL, Dolar, Euro, **gram/çeyrek/yarım/tam/Cumhuriyet/Ata altını** veya gümüş cinsinden borç ve alacak kaydı
@@ -59,11 +60,14 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
 - **Veri kaybı koruması**: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik senkron çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz
 - **Günlük otomatik yerel yedekler**: son 7 günün yedeği Ayarlar'dan geri yüklenebilir — buluta hiç girmeden de bir güvenlik ağı sağlar
+- **Senkron sağlığı görünür**: Ayarlar'da son senkron "5 dakika önce ✓" biçiminde gösterilir; yedekleme başarısız olduysa veya 24 saattir yedek alınmadıysa Özet sayfasının tepesinde kırmızı uyarı çıkar — sessizce bozulan senkron fark edilmeden kalmaz
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
 - **Gizlilik modu** 🙈 — tek dokunuşla tüm tutarları gizleyin
 - **Kurlar otomatik internetten güncellenir** — açılışta son çekimden 3 saat geçtiyse (gereksiz istekleri önlemek için), sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
+- **Kur tazeliği göstergesi** — kurların ne zaman çekildiği "3 saat önce" biçiminde görünür; 24 saatten eskiyse hesaplamaların eski fiyatlara dayandığı uyarısı çıkar
+- **Çevrimdışı çalışır** — bir kez açtıktan sonra internet olmadan da açılır (service worker); internet varken her zaman en güncel sürüm yüklenir
 - JSON yedek alma / geri yükleme
 - Silme gibi geri alınamaz işlemler **uygulama içi onay penceresiyle** yapılır (tarayıcı popup'u değil)
 
@@ -91,7 +95,7 @@ adım hiç devreye girmez.
 
 | | |
 |---|---|
-| Yapı | Tek dosya HTML + CSS + JS, framework yok |
+| Yapı | Tek dosya HTML + CSS + JS, framework yok (+ çevrimdışı için `sw.js` ve `manifest.json`) |
 | Depolama | `localStorage` (JSON yedekleme ile taşınabilir) |
 | Kur kaynağı | [finans.truncgil.com](https://finans.truncgil.com) (isteğe bağlı) |
 | Bulut yedekleme | Supabase (isteğe bağlı, Google girişiyle) |
