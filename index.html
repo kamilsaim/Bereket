@@ -12,6 +12,7 @@
      bar'ın altına yerleşir, 793 yüksekliği ekranın dibine tam oturur. -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1E5631">
+<link rel="manifest" href="manifest.json">
 <title>Bereket — Zekât ve Varlık Takibi</title>
 <link rel="icon" id="fav">
 <link rel="apple-touch-icon" id="fav2">
@@ -115,6 +116,8 @@ main{padding:0 16px 24px;max-width:560px;margin:0 auto}
 .zbanner{display:flex;gap:12px;align-items:center;border-radius:14px;padding:14px;margin-top:14px}
 .zbanner.due{background:linear-gradient(135deg,#FFF8E4,#FBEFC9);border:1px solid rgba(201,162,39,.4)}
 .zbanner.free{background:var(--green-soft);border:1px solid rgba(30,86,49,.15)}
+.zbanner.warn{background:#FDEEEA;border:1px solid rgba(180,67,47,.35)}
+.zbanner.warn b{color:var(--red)}
 .zbanner .ic{font-size:24px}
 .zbanner b{color:var(--green-dk)}
 .zbanner .num{font-weight:800}
@@ -242,6 +245,8 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <div class="amount num" id="oz-toplam">0<span> ₺</span></div>
     <div class="sub" id="oz-net"></div>
   </div>
+
+  <div id="oz-uyari"></div>
 
   <div class="zbanner" id="oz-zbanner"></div>
 
@@ -378,6 +383,9 @@ const SB_URL='https://pdxnpnlwrtswwifevlil.supabase.co';
 const SB_KEY='sb_publishable_GL8MYellfvYl3sz76ZOKVw_n4JbUe4Y';
 const SB_SESSION_KEY='bereket_sb_session';
 const CLOUD_SYNC_KEY='bereket_cloud_lastsync';
+const CLOUD_ERR_KEY='bereket_cloud_lasterr';      // son başarısız buluta yazma (sessiz bozulmayı görünür kılar)
+const HAVL_NOTIFY_KEY='bereket_havl_notified';    // havl hatırlatmasının en son gösterildiği gün
+const RATES_STALE_H=24;                           // kurlar bu kadar saatten eskiyse uyar
 const RATES_FETCH_KEY='bereket_rates_lastfetch';
 const RATES_FETCH_MINGAP=3*60*60*1000;
 const ASSET_TYPES={
@@ -397,8 +405,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.16.1';
+const APP_VERSION='1.17.0';
 const CHANGELOG=[
+ {v:'1.17.0',d:'28.07.2026',n:'Çevrimdışı çalışma (service worker + manifest); bulut senkron durumu ve başarısız yedekleme uyarısı; havl vade hatırlatıcısı (bildirim); kur tazeliği göstergesi ve 24 saatten eski kur uyarısı'},
  {v:'1.16.1',d:'28.07.2026',n:'Logo yenilendi: uygulama içi, tarayıcı sekmesi ve ana ekran ikonu 512.png görseliyle güncellendi'},
  {v:'1.16.0',d:'24.07.2026',n:'Play Store gereksinimleri: uygulama içinden "Hesabımı Kalıcı Olarak Sil" (iki aşamalı onay + Supabase delete-account Edge Function ile hesap ve bulut yedeği kalıcı silme); web üzerinden erişilebilen gizlilik-politikasi.html sayfası eklendi'},
  {v:'1.15.2',d:'24.07.2026',n:'Ana ekran (apple-touch-icon) logosu iclogo.png görseliyle güncellendi; Capacitor Android APK iskeleti hazırlandı; APK içinde Google girişi için deep-link akışı eklendi (sistem tarayıcısında açılıp com.kamilsaim.bereket://auth-callback ile dönüş)'},
@@ -441,7 +450,7 @@ const RATE_LABELS={gram:'Gram Altın (₺)',ceyrek:'Çeyrek Altın (₺)',yarim:
 const DIST_COLORS={gold:'#C9A227',gumus:'#9aa5ad',usd:'#3d7a52',eur:'#1E5631',tl:'#7fb08f',diger:'#d6c690'};
 
 let S=load();
-function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,havl:null,history:[],hide:false}}
+function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,history:[],hide:false}}
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d){const base=defaults();return Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})})}}catch(e){}
   return defaults();
@@ -502,7 +511,27 @@ function totals(){
 }
 
 /* ═══════════ RENDER ═══════════ */
-function renderAll(){renderOzet();renderVarlik();renderZekat();renderBorc();renderTrusts();renderAyar()}
+/* Sessizce bozulan senkronu ve bayatlamış kurları Özet'te görünür kılar (v1.17.0):
+   bunlar fark edilmezse yanlış zekât matrahı veya kaybolmuş yedek demektir. */
+function renderWarnings(){
+  const el=document.getElementById('oz-uyari');if(!el)return;
+  const w=[];
+  if(getSession()){
+    const err=localStorage.getItem(CLOUD_ERR_KEY);
+    const last=localStorage.getItem(CLOUD_SYNC_KEY);
+    if(err){
+      w.push(['⚠️','<b>Bulut yedeği alınamıyor.</b> Son deneme '+(relTime(err)||'bilinmiyor')+' başarısız oldu. Ayarlar → Bulut Yedekleme\'den tekrar deneyin.']);
+    }else if(last&&(Date.now()-new Date(last).getTime())>24*3600000){
+      w.push(['⚠️','<b>'+relTime(last)+'</b> buluta yedeklenmedi. Ayarlar\'dan "Şimdi Buluta Yedekle" yapabilirsiniz.']);
+    }
+  }
+  if(S.assets.length&&ratesStale()){
+    const h=ratesAgeH();
+    w.push(['📉','<b>Kurlar güncel değil'+(h===null?'':' ('+relTime(ratesAt())+')')+'.</b> Hesaplamalar eski fiyatlara göre yapılıyor — Ayarlar → Kurlar\'dan güncelleyin.']);
+  }
+  el.innerHTML=w.map(([ic,tx])=>'<div class="zbanner warn"><div class="ic">'+ic+'</div><div>'+tx+'</div></div>').join('');
+}
+function renderAll(){renderOzet();renderWarnings();renderVarlik();renderZekat();renderBorc();renderTrusts();renderAyar()}
 
 function renderOzet(){
   const t=totals();
@@ -547,7 +576,9 @@ function renderOzet(){
 
   // kur özeti
   const kd=document.getElementById('oz-kurtarih');
-  kd.textContent=S.ratesDate?S.ratesDate:'girilmedi';
+  const kyas=relTime(ratesAt());
+  kd.textContent=S.ratesDate?(S.ratesDate+(kyas?' · '+kyas:'')):'girilmedi';
+  kd.style.color=ratesStale()?'var(--red)':'';
   let kh='';
   [['gram','Gram Altın'],['usd','Dolar'],['eur','Euro']].forEach(([k,n])=>{
     kh+='<div class="item"><div class="tx"><b>'+n+'</b></div><div class="val"><b class="num">'+(S.rates[k]?fmt2(S.rates[k])+' ₺':'—')+'</b></div></div>';
@@ -652,7 +683,17 @@ function renderHavl(){
    (due<=today
     ?'<div class="zbanner due" style="margin-top:12px"><div class="ic">⏰</div><div><b>Kamerî yıl doldu!</b> Nisabı koruduysanız zekâtınızı ödeyebilirsiniz. Ödeme kaydında başlangıç tarihi yenilenir.</div></div>'
     :'')+
-   '<button class="btn ghost" onclick="openHavl()">📅 Tarihi değiştir</button>';
+   '<button class="btn ghost" onclick="openHavl()">📅 Tarihi değiştir</button>'+
+   havlNotifyRow();
+}
+/* Hatırlatma satırı: izin verilmemişse düğme, verilmişse durum yazısı */
+function havlNotifyRow(){
+  const st=notifyState();
+  if(st==='unsupported')return '';
+  if(st==='capacitor')return '<button class="btn ghost" onclick="enableHavlNotify()">🔔 Vade hatırlatmasını kur</button>';
+  if(st==='granted')return '<p class="mini" style="margin-top:8px;color:var(--green)">🔔 Hatırlatma açık — vadeye 7 gün kala uygulamayı açtığınızda bildirim gösterilir.</p>';
+  if(st==='denied')return '<p class="mini" style="margin-top:8px;opacity:.75">🔕 Bildirim izni reddedilmiş. Tarayıcı/site ayarlarından açabilirsiniz.</p>';
+  return '<button class="btn ghost" onclick="enableHavlNotify()">🔔 Vade hatırlatması aç</button>';
 }
 function openHavl(){
   sheet(`<h3>Havl Başlangıç Tarihi</h3>
@@ -665,6 +706,69 @@ function saveHavl(){
   const v=document.getElementById('f-havl').value;
   if(!v)return toast('Tarih seçin');
   S.havl=v;save();closeSheet();renderAll();toast('Kamerî yıl takibi kaydedildi ✓');
+  scheduleHavlNotification();
+}
+
+/* ═══════════ HAVL HATIRLATICI (v1.17.0) ═══════════
+   İki katman:
+   1) APK (Capacitor LocalNotifications): vade tarihine ve 7 gün öncesine GERÇEK,
+      uygulama kapalıyken de çalışan bildirim kurulur.
+   2) Web/PWA: arka planda zamanlanmış bildirim güvenilir değil (özellikle iOS), bu yüzden
+      uygulama açıldığında vade yaklaştıysa/geçtiyse bildirim gösterilir — günde en fazla bir kez. */
+const _LN=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;
+function havlDaysLeft(){
+  if(!S.havl)return null;
+  const due=new Date(havlDue()+'T00:00:00');
+  return Math.ceil((due-new Date())/86400000);
+}
+function notifyState(){
+  if(_LN())return 'capacitor';
+  if(!('Notification' in window))return 'unsupported';
+  return Notification.permission; // granted | denied | default
+}
+async function enableHavlNotify(){
+  const ln=_LN();
+  if(ln){
+    try{
+      const r=await ln.requestPermissions();
+      if(r&&r.display!=='granted')return toast('Bildirim izni verilmedi');
+    }catch(e){}
+    await scheduleHavlNotification();
+    renderHavl();return toast('Hatırlatma kuruldu ✓');
+  }
+  if(!('Notification' in window))return toast('Bu cihaz bildirimi desteklemiyor');
+  try{
+    const p=await Notification.requestPermission();
+    renderHavl();
+    toast(p==='granted'?'Hatırlatma açıldı ✓':'Bildirim izni verilmedi');
+    if(p==='granted')maybeNotifyHavl();
+  }catch(e){toast('Bildirim izni alınamadı')}
+}
+async function scheduleHavlNotification(){
+  const ln=_LN();if(!ln||!S.havl)return;
+  try{
+    await ln.cancel({notifications:[{id:9101},{id:9102}]});
+    const due=new Date(havlDue()+'T09:00:00');
+    const pre=new Date(due.getTime()-7*86400000);
+    const list=[];
+    if(pre>new Date())list.push({id:9101,title:'Bereket — zekât vadesi yaklaşıyor',body:'Kamerî yılın dolmasına 7 gün kaldı.',schedule:{at:pre}});
+    if(due>new Date())list.push({id:9102,title:'Bereket — kamerî yıl doldu',body:'Nisabı koruduysanız zekâtınızı hesaplayıp ödeyebilirsiniz.',schedule:{at:due}});
+    if(list.length)await ln.schedule({notifications:list});
+  }catch(e){}
+}
+function maybeNotifyHavl(){
+  if(!S.havl)return;
+  if(notifyState()!=='granted')return;
+  const k=havlDaysLeft();
+  if(k===null||k>7)return;
+  const today=new Date().toISOString().slice(0,10);
+  if(localStorage.getItem(HAVL_NOTIFY_KEY)===today)return;
+  localStorage.setItem(HAVL_NOTIFY_KEY,today);
+  try{
+    new Notification(k>0?'Bereket — zekât vadesi yaklaşıyor':'Bereket — kamerî yıl doldu',
+      {body:k>0?('Kamerî yılın dolmasına '+k+' gün kaldı.'):'Nisabı koruduysanız zekâtınızı hesaplayıp ödeyebilirsiniz.',
+       icon:document.getElementById('fav2').href,tag:'bereket-havl'});
+  }catch(e){}
 }
 
 let debtFilter='all';
@@ -938,6 +1042,7 @@ function saveRatesForm(){
     S.rates[k]=isNaN(v)?0:v;
   });
   S.ratesDate=new Date().toLocaleDateString('tr-TR');
+  S.ratesAt=new Date().toISOString();
   save();renderAll();toast('Kurlar kaydedildi ✓');
 }
 async function fetchRates(){
@@ -950,6 +1055,7 @@ async function fetchRates(){
     let ok=0;Object.entries(m).forEach(([k,v])=>{if(v>0){S.rates[k]=v;ok++}});
     if(!ok)throw 0;
     S.ratesDate=new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    S.ratesAt=new Date().toISOString();
     localStorage.setItem(RATES_FETCH_KEY,String(Date.now()));
     save();renderAll();toast(ok+' kur güncellendi ✓');
   }catch(e){
@@ -975,7 +1081,13 @@ function renderCloud(){
     el.innerHTML=`<p class="mini" style="margin-top:0">Verileriniz varsayılan olarak yalnızca bu cihazda saklanır. Google ile giriş yaparak isteğe bağlı bulut yedeği alabilir, verilerinizi başka cihazlarla senkronize edebilirsiniz.</p>
     <button class="btn primary" onclick="cloudLoginGoogle()">🔐 Google ile Giriş Yap</button>`;
   }else{
-    el.innerHTML=`<p class="mini" style="margin-top:0">Giriş yapıldı: <b>${esc(s.user.email||'')}</b><br>Son senkron: ${last?new Date(last).toLocaleString('tr-TR'):'—'}</p>
+    const err=localStorage.getItem(CLOUD_ERR_KEY);
+    const rel=relTime(last);
+    const stale=last&&(Date.now()-new Date(last).getTime())>24*3600000;
+    const durum=err
+      ? `<span style="color:var(--red)">⚠️ Yedekleme başarısız (${relTime(err)||'—'})</span>`
+      : (last?`<span style="color:${stale?'var(--red)':'var(--green)'}">${stale?'⚠️':'✓'} ${rel}</span>` : '<span style="opacity:.7">henüz yedeklenmedi</span>');
+    el.innerHTML=`<p class="mini" style="margin-top:0">Giriş yapıldı: <b>${esc(s.user.email||'')}</b><br>Son senkron: ${durum}${last?` <span style="opacity:.6">(${new Date(last).toLocaleString('tr-TR')})</span>`:''}</p>
     <button class="btn primary" style="margin-top:4px" onclick="cloudPush()">📤 Şimdi Buluta Yedekle</button>
     <button class="btn ghost" onclick="cloudPull()">☁️ Buluttan Geri Yükle</button>
     <button class="btn ghost" onclick="cloudLogout()">Çıkış Yap</button>
@@ -1095,9 +1207,15 @@ async function doCloudPush(silent){
     const r=await fetch(SB_URL+'/rest/v1/brkt_data',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:s.user.id,data:S,updated_at:new Date().toISOString()})});
     if(!r.ok)throw 0;
     localStorage.setItem(CLOUD_SYNC_KEY,new Date().toISOString());
+    localStorage.removeItem(CLOUD_ERR_KEY);
     if(!silent)toast('Buluta yedeklendi ✓');
-    renderCloud();
-  }catch(e){if(!silent)toast('Buluta yedeklenemedi')}
+    renderCloud();renderWarnings();
+  }catch(e){
+    // Sessiz push'ta bile hatayı kaydet: aksi halde senkron aylarca bozuk kalıp fark edilmiyor
+    localStorage.setItem(CLOUD_ERR_KEY,new Date().toISOString());
+    if(!silent)toast('Buluta yedeklenemedi');
+    renderCloud();renderWarnings();
+  }
 }
 async function cloudPull(){
   const row=await cloudLoad();
@@ -1234,6 +1352,31 @@ function wipeData(){
 /* ═══════════ YARDIMCI ═══════════ */
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function trDate(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'.'+m+'.'+y}
+/* "3 saat önce" biçiminde göreli zaman — senkron/kur tazeliğini bir bakışta göstermek için */
+function relTime(t){
+  if(!t)return null;
+  const ms=Date.now()-new Date(t).getTime();
+  if(isNaN(ms))return null;
+  const dk=Math.floor(ms/60000);
+  if(dk<1)return'az önce';
+  if(dk<60)return dk+' dakika önce';
+  const sa=Math.floor(dk/60);
+  if(sa<24)return sa+' saat önce';
+  const g=Math.floor(sa/24);
+  return g+' gün önce';
+}
+function ratesAt(){
+  // v1.17.0 öncesi kayıtlarda S.ratesAt yok; son başarılı çekim damgasına düşülür
+  if(S.ratesAt)return S.ratesAt;
+  const f=parseInt(localStorage.getItem(RATES_FETCH_KEY)||'0',10);
+  return f?new Date(f).toISOString():null;
+}
+function ratesAgeH(){
+  const t=ratesAt();if(!t)return null;
+  const h=(Date.now()-new Date(t).getTime())/3600000;
+  return isNaN(h)?null:h;
+}
+function ratesStale(){const h=ratesAgeH();return h===null||h>RATES_STALE_H}
 function sheet(html){document.getElementById('sheet').innerHTML='<button class="sheet-close" onclick="closeSheet()" aria-label="Kapat">✕</button><div class="grab"></div>'+html;document.getElementById('overlay').classList.add('open');document.getElementById('app').style.overflow='hidden'}
 function closeSheet(){document.getElementById('overlay').classList.remove('open');document.getElementById('app').style.overflow=''}
 
@@ -1310,7 +1453,18 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
   await handleAuthRedirect();
   await initialSync();
   autoFetchRatesIfStale();
+  maybeNotifyHavl();
+  scheduleHavlNotification();
 })();
+
+/* Çevrimdışı çalışma (v1.17.0): service worker uygulama kabuğunu önbelleğe alır.
+   Ağ öncelikli olduğu için internet varken her zaman en güncel sürüm gösterilir.
+   Capacitor (file://) ve dosyadan açma durumlarında kayıt yapılmaz. */
+if('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.Capacitor){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,17 @@
+{
+  "name": "Bereket — Zekât ve Varlık Takibi",
+  "short_name": "Bereket",
+  "description": "Zekât, nisab ve varlık takibi. Veriler cihazda saklanır, isteğe bağlı bulut yedeği alınabilir.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7F0",
+  "theme_color": "#1E5631",
+  "icons": [
+    { "src": "512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
