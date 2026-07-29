@@ -173,6 +173,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);b
 .btn.ghost{background:transparent;border:1.5px solid rgba(30,86,49,.25);color:var(--green-dk);margin-top:10px}
 .btn.danger{background:var(--red-soft);color:var(--red)}
 .btn:focus-visible,.tab:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* Borç/alacak formlarındaki "varlıklarıma da işle" onay kutusu (v1.18.0) */
+.xferchk{display:flex;align-items:center;gap:9px;margin:14px 0 2px;padding:11px 12px;border-radius:12px;
+  background:var(--green-soft);font-size:13px;font-weight:800;color:var(--green-dk);letter-spacing:0;text-transform:none;cursor:pointer}
+.xferchk input{width:19px;height:19px;flex:0 0 auto;min-width:0;padding:0;accent-color:var(--green);border-radius:5px}
+.xferhint{margin:5px 2px 0;font-size:11.5px;line-height:1.45;color:var(--muted)}
+.pickrow{cursor:pointer}
 .seg{display:flex;background:var(--green-soft);border-radius:12px;padding:4px;gap:4px;margin-top:6px}
 .seg button{flex:1;border:none;background:transparent;padding:9px;border-radius:9px;font:inherit;font-weight:700;font-size:13.5px;color:var(--green-dk);cursor:pointer}
 .seg button.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
@@ -405,8 +411,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.17.0';
+const APP_VERSION='1.18.0';
 const CHANGELOG=[
+ {v:'1.18.0',d:'29.07.2026',n:'Borç/alacak ↔ varlık aktarımı: yeni kayıt, ödeme ekleme ve "ödendi" işaretlemede ilgili varlık kaydı seçilerek otomatik güncellenir'},
  {v:'1.17.0',d:'28.07.2026',n:'Çevrimdışı çalışma (service worker + manifest); bulut senkron durumu ve başarısız yedekleme uyarısı; havl vade hatırlatıcısı (bildirim); kur tazeliği göstergesi ve 24 saatten eski kur uyarısı'},
  {v:'1.16.1',d:'28.07.2026',n:'Logo yenilendi: uygulama içi, tarayıcı sekmesi ve ana ekran ikonu 512.png görseliyle güncellendi'},
  {v:'1.16.0',d:'24.07.2026',n:'Play Store gereksinimleri: uygulama içinden "Hesabımı Kalıcı Olarak Sil" (iki aşamalı onay + Supabase delete-account Edge Function ile hesap ve bulut yedeği kalıcı silme); web üzerinden erişilebilen gizlilik-politikasi.html sayfası eklendi'},
@@ -840,6 +847,71 @@ function saveAsset(id){
 }
 function delAsset(id){openConfirm('Bu varlık silinsin mi?',()=>{S.assets=S.assets.filter(a=>a.id!==id);save();renderAll()})}
 
+/* ═══════════ BORÇ ↔ VARLIK AKTARIMI (v1.18.0) ═══════════
+   Alacak/borç işlemlerinde ilgili varlık kaydını güncelleyen ortak akış.
+   o = {cur, qty, sign, label, onDone}  · sign=+1 varlığa ekle, -1 varlıktan düş.
+   Hangi varlık kaydına işleneceğini kullanıcı seçer; yetersiz bakiyede uyarı
+   sonrası kayıt sıfırlanır (eksiye düşmez). Yalnızca yeni işlemlerde çalışır —
+   kayıt düzenleme/silme varlığı geri düzeltmez (bilinçli sadelik). */
+let _xfer=null;
+function assetTransfer(o){
+  const T=ASSET_TYPES[o.cur];
+  if(!T){if(o.onDone)o.onDone('');return}
+  _xfer=o;
+  const add=o.sign>0,u=CUR_UNITS[o.cur]||T.unit;
+  const rows=S.assets.filter(a=>a.type===o.cur).map(a=>
+    `<div class="item pickrow" onclick="xferPick('${a.id}')">
+      <div class="tx"><b>${T.name}</b>${a.note?'<div class="mini">'+esc(a.note)+'</div>':''}</div>
+      <div class="val"><b class="num">${fmt2(a.qty)} ${T.unit}</b></div>
+      <span aria-hidden="true">${add?'➕':'➖'}</span>
+    </div>`).join('');
+  sheet(`<h3>${add?'Varlıklara Ekle':'Varlıklardan Düş'}</h3>
+  <p class="mini" style="margin-top:0">${esc(o.label)} · <b class="num">${fmt2(o.qty)} ${u}</b> ${add?'eklenecek':'düşülecek'}. Hangi kayda işlensin?</p>
+  ${rows||'<p class="mini">Bu türde varlık kaydınız yok.</p>'}
+  ${add?'<button class="btn gold" onclick="xferPick(\'new\')">➕ Yeni varlık kaydı oluştur</button>':''}
+  <button class="btn ghost" onclick="xferSkip()">Vazgeç (varlıklara dokunma)</button>`);
+}
+function xferSkip(){const o=_xfer;_xfer=null;closeSheet();if(o&&o.onDone)o.onDone('')}
+function xferPick(aid){
+  const o=_xfer;if(!o)return;
+  const T=ASSET_TYPES[o.cur],u=CUR_UNITS[o.cur]||T.unit;
+  if(aid==='new'){
+    _xfer=null;
+    S.assets.push({id:uid(),type:o.cur,qty:o.qty,date:new Date().toISOString().slice(0,10),note:o.label});
+    closeSheet();save();renderAll();
+    if(o.onDone)o.onDone(' · '+fmt2(o.qty)+' '+u+' varlıklara eklendi');
+    return;
+  }
+  const a=S.assets.find(x=>x.id===aid);if(!a)return;
+  if(o.sign>0){
+    _xfer=null;
+    a.qty=Math.round((a.qty+o.qty)*1e6)/1e6;
+    closeSheet();save();renderAll();
+    if(o.onDone)o.onDone(' · '+fmt2(o.qty)+' '+u+' varlıklara eklendi');
+    return;
+  }
+  if(o.qty>a.qty+1e-9){
+    openConfirm(`Bu kayıtta sadece <b class="num">${fmt2(a.qty)} ${T.unit}</b> var. Kayıt sıfırlanıp listeden kaldırılacak, kalan ${fmt2(o.qty-a.qty)} ${u} uygulanmayacak.`,
+      ()=>xferApplyMinus(aid,a.qty),'Evet, uygula');
+    return;
+  }
+  xferApplyMinus(aid,o.qty);
+}
+function xferApplyMinus(aid,qty){
+  const o=_xfer;if(!o)return;_xfer=null;
+  const a=S.assets.find(x=>x.id===aid);if(!a)return;
+  a.qty=Math.round((a.qty-qty)*1e6)/1e6;
+  if(a.qty<=1e-9)S.assets=S.assets.filter(x=>x.id!==aid);
+  closeSheet();save();renderAll();
+  if(o.onDone)o.onDone(' · '+fmt2(qty)+' '+(CUR_UNITS[o.cur]||ASSET_TYPES[o.cur].unit)+' varlıklardan düşüldü');
+}
+/* Formlardaki onay kutusu — yalnızca yeni kayıt/ödemede gösterilir */
+function xferChk(hint){
+  return `<label class="xferchk"><input type="checkbox" id="f-xfer" checked> Varlıklarıma da işle</label>
+  <p class="xferhint">${hint}</p>`;
+}
+function xferWanted(){const x=document.getElementById('f-xfer');return !!(x&&x.checked)}
+
 /* ═══════════ BORÇ CRUD ═══════════ */
 const CUR_OPTS='<option value="tl">TL ₺</option><option value="usd">Dolar $</option><option value="eur">Euro €</option><option value="gram">Gram Altın</option><option value="ceyrek">Çeyrek Altın</option><option value="yarim">Yarım Altın</option><option value="tam">Tam Altın</option><option value="cumhuriyet">Cumhuriyet Altını</option><option value="ata">Ata Altın</option><option value="gumus">Gümüş (gr)</option>';
 const CUR_UNITS={tl:'₺',usd:'$',eur:'€',gram:'gr altın',ceyrek:'çeyrek',yarim:'yarım',tam:'tam altın',cumhuriyet:'Cumhuriyet',ata:'Ata',gumus:'gr gümüş'};
@@ -857,6 +929,7 @@ function openDebt(id){
     <div><label>Birim</label><select id="f-cur">${CUR_OPTS}</select></div>
   </div>
   <label>Vade (isteğe bağlı)</label><input type="date" id="f-due" value="${d&&d.due?d.due:''}">
+  ${d?'':xferChk('Alacak eklerken bu tutar varlıklarından düşülür (parayı verdin), borç eklerken varlıklarına eklenir (parayı aldın). Hangi varlık kaydına işleneceğini kaydettikten sonra seçersin.')}
   <button class="btn primary" onclick="saveDebt('${d?d.id:''}')">${d?'Kaydet':'Ekle'}</button>`);
   document.querySelectorAll('#f-dir button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#f-dir button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
@@ -871,11 +944,40 @@ function saveDebt(id){
   const due=document.getElementById('f-due').value||null;
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  const wants=!id&&xferWanted();
   if(id){const d=S.debts.find(x=>x.id===id);Object.assign(d,{dir,who,amount,cur,due});d.done=debtRemaining(d)<=0;}
   else S.debts.push({id:uid(),dir,who,amount,cur,due,done:false,payments:[]});
-  save();closeSheet();renderAll();toast(id?'Kayıt güncellendi ✓':'Kayıt eklendi ✓');
+  save();renderAll();
+  /* Yeni alacak → varlıktan düş (parayı verdin), yeni borç → varlığa ekle (parayı aldın) */
+  if(wants&&ASSET_TYPES[cur]){
+    return assetTransfer({cur,qty:amount,sign:dir==='alacak'?-1:1,
+      label:who+' — '+(dir==='alacak'?'alacak':'borç'),
+      onDone:m=>toast('Kayıt eklendi ✓'+m)});
+  }
+  closeSheet();toast(id?'Kayıt güncellendi ✓':'Kayıt eklendi ✓');
 }
-function toggleDebt(id){const d=S.debts.find(x=>x.id===id);d.done=!d.done;save();renderAll();toast(d.done?'Kapatıldı ✓':'Yeniden açıldı')}
+function toggleDebt(id){
+  const d=S.debts.find(x=>x.id===id);
+  const closing=!d.done,rem=debtRemaining(d);
+  d.done=!d.done;save();renderAll();
+  if(closing&&rem>0&&ASSET_TYPES[d.cur])return askDebtXfer(d.id,rem);
+  toast(d.done?'Kapatıldı ✓':'Yeniden açıldı');
+}
+/* "Ödendi" tiklendiğinde kalan tutarın varlıklara işlenmesini sorar */
+function askDebtXfer(id,rem){
+  const d=S.debts.find(x=>x.id===id);if(!d)return;
+  const al=d.dir==='alacak';
+  sheet(`<h3>Varlıklara işlensin mi?</h3>
+  <p class="mini" style="margin-top:0"><b>${esc(d.who)}</b> kaydı kapatıldı. Kalan <b class="num">${fmt2(rem)} ${CUR_UNITS[d.cur]}</b> ${al?'varlıklarına eklensin':'varlıklarından düşülsün'} mü?</p>
+  <button class="btn primary" onclick="runDebtXfer('${id}',${rem})">Evet, işle</button>
+  <button class="btn ghost" onclick="closeSheet();toast('Kapatıldı ✓')">Hayır, sadece kapat</button>`);
+}
+function runDebtXfer(id,rem){
+  const d=S.debts.find(x=>x.id===id);if(!d)return;
+  assetTransfer({cur:d.cur,qty:rem,sign:d.dir==='alacak'?1:-1,
+    label:d.who+(d.dir==='alacak'?' — tahsilat':' — borç ödemesi'),
+    onDone:m=>toast('Kapatıldı ✓'+m)});
+}
 function delDebt(id){openConfirm('Bu kayıt silinsin mi?',()=>{S.debts=S.debts.filter(d=>d.id!==id);save();renderAll()})}
 
 function openDebtCard(id){
@@ -902,6 +1004,7 @@ function openPayment(id){
   <p class="mini" style="margin-top:0">${esc(d.who)} · Kalan: <b class="num">${fmt2(rem)} ${CUR_UNITS[d.cur]}</b></p>
   <label>Ödeme Tutarı</label><input type="number" step="0.01" inputmode="decimal" id="f-pamt" value="${rem?Math.round(rem*100)/100:''}" placeholder="0">
   <label>Tarih</label><input type="date" id="f-pdate" value="${new Date().toISOString().slice(0,10)}">
+  ${xferChk(d.dir==='alacak'?'Tahsil ettiğin tutar varlıklarına eklenir. Hangi kayda işleneceğini birazdan seçersin.':'Ödediğin tutar varlıklarından düşülür. Hangi kayıttan düşüleceğini birazdan seçersin.')}
   <button class="btn primary" onclick="savePayment('${d.id}')">Ödemeyi Kaydet</button>
   <button class="btn ghost" onclick="openDebtCard('${d.id}')">◀ Geri</button>`);
 }
@@ -910,10 +1013,18 @@ function savePayment(id){
   const amount=parseFloat(document.getElementById('f-pamt').value);
   const date=document.getElementById('f-pdate').value;
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  const wants=xferWanted();
   if(!d.payments)d.payments=[];
   d.payments.push({id:uid(),amount,date});
   if(debtRemaining(d)<=0)d.done=true;
-  save();renderAll();openDebtCard(id);toast('Ödeme kaydedildi ✓');
+  save();renderAll();
+  /* Alacak tahsilatı → varlığa ekle, borç ödemesi → varlıktan düş */
+  if(wants&&ASSET_TYPES[d.cur]){
+    return assetTransfer({cur:d.cur,qty:amount,sign:d.dir==='alacak'?1:-1,
+      label:d.who+(d.dir==='alacak'?' — tahsilat':' — borç ödemesi'),
+      onDone:m=>{openDebtCard(id);toast('Ödeme kaydedildi ✓'+m)}});
+  }
+  openDebtCard(id);toast('Ödeme kaydedildi ✓');
 }
 function delPayment(debtId,paymentId){
   openConfirm('Bu ödeme kaydı silinsin mi?',()=>{
@@ -1381,10 +1492,10 @@ function sheet(html){document.getElementById('sheet').innerHTML='<button class="
 function closeSheet(){document.getElementById('overlay').classList.remove('open');document.getElementById('app').style.overflow=''}
 
 let _confirmCb=null;
-function openConfirm(msg,cb){
+function openConfirm(msg,cb,yes){
   _confirmCb=cb;
   sheet(`<h3>Emin misiniz?</h3><p class="mini" style="margin-top:0">${msg}</p>
-  <button class="btn danger" onclick="runConfirm()">Evet, Sil</button>
+  <button class="btn danger" onclick="runConfirm()">${yes||'Evet, Sil'}</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
 }
 function runConfirm(){const cb=_confirmCb;_confirmCb=null;closeSheet();if(cb)cb();}

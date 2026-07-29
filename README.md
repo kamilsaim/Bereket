@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.17.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.18.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -46,6 +46,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Toplam kartlarında hangi para biriminden/üründen ne kadar borç veya alacak olduğunun dökümü
 - Vade takibi — geciken kayıtlar kırmızı uyarı alır
 - "Ödendi" işaretleme ve filtreleme
+- **Varlıklara otomatik aktarım**: yeni alacak eklerken tutar varlıklarınızdan düşülür, yeni borçta eklenir; tahsilat/ödeme yaparken tersi işlenir. Hangi varlık kaydına işleneceğini siz seçersiniz, isterseniz onay kutusunu kaldırıp atlarsınız
 
 ### 🔒 Emanetler
 - Zekâta dahil olmayan, sadece takip amaçlı **bende duran** veya **bendeki (onda duran)** emanet para/altın kayıtları
@@ -105,6 +106,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.18.0** | 29.07.2026 | Borç/alacak ↔ varlık aktarımı: yeni kayıt, ödeme ekleme ve "ödendi" işaretlemede ilgili varlık kaydı seçilerek otomatik güncellenir |
 | **v1.17.0** | 28.07.2026 | Çevrimdışı çalışma (service worker + manifest); bulut senkron durumu ve başarısız yedekleme uyarısı; havl vade hatırlatıcısı (bildirim); kur tazeliği göstergesi ve eski kur uyarısı |
 | **v1.16.1** | 28.07.2026 | Logo yenilendi: uygulama içi, tarayıcı sekmesi ve ana ekran ikonu 512.png görseliyle güncellendi |
 | **v1.16.0** | 24.07.2026 | Play Store gereksinimleri: uygulama içinden kalıcı hesap silme (Supabase Edge Function ile) ve web'den erişilebilen gizlilik politikası sayfası eklendi |
