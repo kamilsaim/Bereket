@@ -450,8 +450,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.20.1';
+const APP_VERSION='1.20.2';
 const CHANGELOG=[
+ {v:'1.20.2',d:'10.08.2026',n:'Hareketler kişi başlığı altında gruplanır — aynı kişinin arka arkaya yaptığı işlerde adı her satırda tekrarlanmaz, liste daha az yer kaplar'},
  {v:'1.20.1',d:'10.08.2026',n:'Üyelik bekçisi: kasa daveti ve kasadan çıkarılma artık 20 saniye içinde algılanır (Realtime yalnızca kasa verisini taşıyor, üyelik değişiklikleri yoklamayla anlaşılıyor); uygulama öne gelince de hemen kontrol edilir'},
  {v:'1.20.0',d:'10.08.2026',n:'Hareket geçmişi: paylaşılan kasada kimin ne eklediği/sildiği/güncellediği kaydedilir; karşı taraftan gelen değişiklikte bildirim (toast) gösterilir; Ayarlar → Hareketler kartından geçmiş görüntülenir'},
  {v:'1.19.3',d:'10.08.2026',n:'Oturumsuz kullanıp sonradan giriş yapanlara "verilerinizi buluta taşıyalım mı?" teklifi (bu kişiler daha önce hiç bulut kasası edinemiyor, yedeksiz kalıyorlardı)'},
@@ -997,22 +998,42 @@ function renderAyar(){
   renderLog();
 }
 /* ═══════════ HAREKET GEÇMİŞİ (v1.20.0) ═══════════ */
-function logRow(e){
-  const who=e.by?(e.by===whoAmI()?'Siz':esc(e.by.split('@')[0])):'Siz';
-  return '<div class="item"><div class="tx"><b>'+who+'</b> '+esc(e.act)+' — '+esc(e.kind)+(e.label?' <span class="mini">('+esc(e.label)+')</span>':'')+
-    '<div class="mini">'+relTime(e.at)+'</div></div></div>';
+function logWho(e){return e.by?(e.by===whoAmI()?'Siz':e.by.split('@')[0]):'Siz'}
+function logSorted(){return (S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
+/* Hareketler kişi başlığı altında toplanır: aynı kişinin arka arkaya yaptığı
+   işler tek başlık altında listelenir, her satırda adı tekrarlanmaz (yer
+   kazandırır ve "kim ne yaptı" okuması kolaylaşır). */
+function logGroups(list){
+  const gs=[];
+  list.forEach(e=>{
+    const w=logWho(e);
+    const last=gs[gs.length-1];
+    if(last&&last.who===w)last.items.push(e); else gs.push({who:w,items:[e]});
+  });
+  return gs;
+}
+function logGroupHtml(g){
+  const rows=g.items.map(e=>
+    '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0">'+
+      '<div>'+esc(e.act)+' — '+esc(e.kind)+(e.label?' <span style="opacity:.75">('+esc(e.label)+')</span>':'')+'</div>'+
+      '<div class="mini" style="margin:0;white-space:nowrap">'+relTime(e.at)+'</div>'+
+    '</div>').join('');
+  return '<div style="padding:9px 0;border-bottom:1px solid rgba(30,86,49,.08)">'+
+    '<b style="color:var(--green-dk)">'+esc(g.who)+'</b>'+
+    '<div style="font-size:13px;margin-top:2px">'+rows+'</div></div>';
 }
 function renderLog(){
   const card=document.getElementById('a-log-card'),el=document.getElementById('a-log');
-  const list=(S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const list=logSorted();
   if(!list.length){card.style.display='none';return}
   card.style.display='';
-  el.innerHTML=list.slice(0,12).map(logRow).join('')+
+  el.innerHTML=logGroups(list.slice(0,12)).map(logGroupHtml).join('')+
     '<button class="btn ghost" onclick="openAllLog()">Tümünü gör</button>';
 }
 function openAllLog(){
-  const list=(S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
-  sheet('<h3>Tüm Hareketler</h3>'+list.map(logRow).join(''));
+  const gs=logGroups(logSorted());
+  sheet('<h3>Tüm Hareketler</h3>'+(gs.length?gs.map(logGroupHtml).join(''):'<p class="mini">Kayıt yok.</p>')+
+    '<button class="btn ghost" onclick="closeSheet()">Kapat</button>');
 }
 
 /* ═══════════ VARLIK CRUD ═══════════ */
