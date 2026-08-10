@@ -445,8 +445,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.19.1';
+const APP_VERSION='1.19.2';
 const CHANGELOG=[
+ {v:'1.19.2',d:'10.08.2026',n:'Kasadan çıkarılan kişinin cihazındaki kasa kopyası ve o kasaya ait günlük yedekler otomatik silinir (erişimi kesilen kişi son anlık görüntüyü görmeye devam edemez)'},
  {v:'1.19.1',d:'10.08.2026',n:'Kasa daveti kabul edilince "kasaya geç" penceresi gösterilir (davetli paylaşılan kasayı bulamıyordu); kasa oluşturmayı engelleyen RLS politikası düzeltildi; kasa oluşturma hataları artık ayrıntılı bildiriliyor'},
  {v:'1.19.0',d:'10.08.2026',n:'Paylaşılan kasalar: verilerinizi eşinizle veya ortağınızla paylaşın (Düzenleyen/İzleyici yetkileri, e-posta ile davet), birden çok kasa arasında geçiş, değişikliklerin karşı tarafta anında görünmesi (Realtime), kayıt bazlı birleştirme ile çift taraflı düzenlemede veri kaybının önlenmesi'},
  {v:'1.18.0',d:'29.07.2026',n:'Borç/alacak ↔ varlık aktarımı: yeni kayıt, ödeme ekleme ve "ödendi" işaretlemede ilgili varlık kaydı seçilerek otomatik güncellenir'},
@@ -1515,13 +1516,49 @@ async function createVault(name,data){
     return v;
   }catch(e){_lastVaultErr=String(e&&e.message||e);console.error('createVault:',_lastVaultErr);return null}
 }
+let _denyCount=0,_accessLostBusy=false;
 async function cloudLoad(){
   const v=activeVault();if(v==='local')return null;
   try{
     const r=await sbFetch('brkt_vaults?id=eq.'+v+'&select=id,name,data,updated_at',{headers:{Accept:'application/vnd.pgrst.object+json'}});
-    if(!r||!r.ok)return null;
+    if(!r){return null}                       // ağ hatası: hiçbir sonuç çıkarma
+    if(!r.ok){
+      /* 406 = pgrst.object ile 0 satır: satır artık BİZE GÖRÜNMÜYOR, yani
+         kasadan çıkarıldık ya da kasa silindi. 404 de aynı anlamda.
+         401/403 BİLİNÇLİ olarak dışarıda: onlar token/oturum sorunudur ve
+         yerel veriyi silmek için gerekçe değildir (silme geri alınamaz).
+         Ayrıca tek seferlik bir aksaklıkla veri silmemek için üst üste İKİ
+         kesin ret şartı koşuluyor. */
+      if(r.status===406||r.status===404){
+        if(++_denyCount>=2)vaultAccessLost(v);
+      }
+      return null;
+    }
+    _denyCount=0;
     return await r.json();
   }catch(e){return null}
+}
+/* Kasadan çıkarılan kişi sunucudan yeni veri alamaz ama cihazındaki son
+   kopyayı görüntülemeye devam ederdi. Erişim kesildiği kesinleşince yerel
+   kopya ve o kasaya ait günlük yedekler silinir. */
+async function vaultAccessLost(vid){
+  if(_accessLostBusy||activeVault()!==vid)return;
+  _accessLostBusy=true;
+  try{
+    rtClose();
+    localStorage.removeItem(dataKey(vid));
+    Object.keys(localStorage).filter(k=>k.startsWith(bakPrefix(vid))).forEach(k=>localStorage.removeItem(k));
+    localStorage.removeItem(CLOUD_SYNC_KEY);
+    localStorage.setItem(VAULT_KEY,'local');
+    _denyCount=0;_role='owner';
+    S=load();renderAll();
+    const list=await listVaults();
+    if(list)_vaults=list;
+    renderVaultBar();renderAyar();
+    sheet(`<h3>🔒 Kasa Erişiminiz Sona Erdi</h3>
+    <p class="mini" style="margin-top:0">Bu kasadan çıkarıldınız veya kasa silindi. Kasanın bu cihazdaki kopyası <b>güvenlik gereği silindi</b>. Kendi kasanızdaki verileriniz etkilenmedi.</p>
+    <button class="btn ghost" onclick="closeSheet()">Tamam</button>`);
+  }finally{_accessLostBusy=false}
 }
 
 /* ═══════════ ÇOK KASALI KULLANIM (v1.19.0): kasa seçici, Kasalar kartı, üyelik ═══════════ */
@@ -1530,9 +1567,11 @@ let _members=[];       // aktif kasanın üyeleri (openMembers ile doldurulur)
 async function refreshVaults(){
   const list=await listVaults();
   if(list)_vaults=list;
-  if(_vaults.length&&!_vaults.find(x=>x.id===activeVault())&&activeVault()!=='local'){
-    // Kasadan çıkarıldıysak (silindi/atıldık) ilk kasaya düş
-    await switchVault(_vaults[0].id);
+  /* Sunucu listeyi verdi (list!==null) ve aktif kasa listede yoksa: kasadan
+     çıkarıldık veya kasa silindi. Yerel kopyayı da temizle — yoksa kişi
+     cihazındaki son anlık görüntüyü görmeye devam ederdi. */
+  if(list&&activeVault()!=='local'&&!list.find(x=>x.id===activeVault())){
+    await vaultAccessLost(activeVault());
     return;
   }
   await refreshRole();
