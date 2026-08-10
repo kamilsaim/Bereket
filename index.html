@@ -229,6 +229,23 @@ nav{
   margin-top:2px;cursor:pointer;display:flex;align-items:center;gap:4px}
 .vaultbar .rolebadge{font-size:10px;padding:1px 6px;border-radius:8px;
   background:rgba(250,247,240,.18)}
+/* İzleyici modu (v1.19.0): gerçek koruma save() kapısında ve sunucuda RLS'te;
+   burada yalnızca yazma düğmelerini gizliyoruz. Sınıf eklemek yerine onclick
+   imzasına göre hedefliyoruz — bu dosyadaki her düğme satır içi onclick
+   kullanıyor ve 24 ayrı şablon dizesini elle işaretlemek hata riskiydi.
+   ^= ile tam çağrı öneki eşleşir: openDebt( ile openDebtCard( karışmaz. */
+body.ro [onclick^="openAsset("],body.ro [onclick^="delAsset("],
+body.ro [onclick^="openDebt("],body.ro [onclick^="delDebt("],body.ro [onclick^="toggleDebt("],
+body.ro [onclick^="openPayment("],body.ro [onclick^="delPayment("],
+body.ro [onclick^="openTrust("],body.ro [onclick^="delTrust("],body.ro [onclick^="toggleTrust("],
+body.ro [onclick^="openTrustPayment("],body.ro [onclick^="delTrustPayment("],
+body.ro [onclick^="openZekat("],body.ro [onclick^="delZekat("],
+body.ro [onclick^="openHavl("],
+body.ro [onclick^="saveRatesForm("],body.ro [onclick^="fetchRates("],
+body.ro [onclick^="wipeData("],body.ro [onclick^="restoreLocalBackup("],
+body.ro .wr-hide{display:none!important}
+/* Kurlar izleyicide görünür kalsın ama değiştirilemesin (hesabı anlaması için) */
+body.ro #a-kurform input{pointer-events:none;opacity:.55}
 details.kurbox{margin-top:8px}
 details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font-size:13.5px;padding:6px 0}
 </style>
@@ -365,7 +382,7 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <h2>Yedekleme <span class="rule"></span></h2>
     <p class="mini" style="margin-top:0">⚠️ iOS'ta uygulamayı ana ekrandan <b>silmek cihazdaki verileri de siler.</b> Silmeden önce buluta veya JSON dosyasına yedek alın.</p>
     <button class="btn ghost" style="margin-top:4px" onclick="exportData()">⬇ Verileri indir (JSON)</button>
-    <button class="btn ghost" onclick="document.getElementById('importfile').click()">⬆ Yedekten geri yükle</button>
+    <button class="btn ghost wr-hide" onclick="document.getElementById('importfile').click()">⬆ Yedekten geri yükle</button>
     <button class="btn ghost" onclick="openLocalBackups()">🕘 Günlük otomatik yedekler</button>
     <input type="file" id="importfile" accept=".json" hidden onchange="importData(this)">
     <button class="btn danger" onclick="wipeData()">Tüm verileri sil</button>
@@ -639,6 +656,9 @@ function totals(){
 function renderWarnings(){
   const el=document.getElementById('oz-uyari');if(!el)return;
   const w=[];
+  /* İzleyici rolü kasa çubuğunda da yazıyor ama o yalnızca 2+ kasa varken
+     görünür; tek kasalı izleyicinin durumu fark etmesi için burada da söyle. */
+  if(_role==='viewer')w.push(['👁️','<b>İzleyici modundasınız.</b> Bu kasayı görüntüleyebilir ama değiştiremezsiniz. Yetki için kasa sahibine başvurun.']);
   if(getSession()){
     const err=localStorage.getItem(CLOUD_ERR_KEY);
     const last=localStorage.getItem(CLOUD_SYNC_KEY);
@@ -654,7 +674,11 @@ function renderWarnings(){
   }
   el.innerHTML=w.map(([ic,tx])=>'<div class="zbanner warn"><div class="ic">'+ic+'</div><div>'+tx+'</div></div>').join('');
 }
-function renderAll(){renderOzet();renderWarnings();renderVarlik();renderZekat();renderBorc();renderTrusts();renderAyar()}
+function renderAll(){
+  document.body.classList.toggle('ro',_role==='viewer');   // izleyicide yazma düğmeleri gizlenir
+  renderOzet();renderWarnings();renderVarlik();renderZekat();renderBorc();renderTrusts();renderAyar();
+  if(typeof renderVaultBar==='function')renderVaultBar();
+}
 
 function renderOzet(){
   const t=totals();
