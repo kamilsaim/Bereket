@@ -1513,8 +1513,11 @@ async function refreshRole(){
     if(!s){document.body.classList.toggle('ro',_role==='viewer');return} // oturum yok: son bilinen rolü koru
     const r=await sbFetch('brkt_members?vault_id=eq.'+v+'&user_id=eq.'+s.user.id+'&select=role',{headers:{Accept:'application/vnd.pgrst.object+json'}});
     if(r&&r.ok){_role=(await r.json()).role}
-    else if(r&&!r.ok){_role='viewer'} // sunucu cevap verdi: üyelik yok/erişim yok -> gerçekten izleyici
-    // r===null: ağ hatası, sbFetch/sbToken başarısız oldu -> rolü DEĞİŞTİRME
+    /* Rolü SADECE sunucu "üyelik/erişim yok" dediğinde düşür: 406 (pgrst.object
+       ile 0 satır), 401/403 (yetki yok), 404. 500/503 gibi geçici sunucu
+       arızaları kullanıcıyı kendi kasasında salt-okunur yapmamalı. */
+    else if(r&&[401,403,404,406].indexOf(r.status)>=0){_role='viewer'}
+    // r===null veya 5xx: ağ/sunucu sorunu -> son bilinen rolü KORU
   }catch(e){/* ağ hatası: son bilinen rolü koru */}
   document.body.classList.toggle('ro',_role==='viewer');
 }
