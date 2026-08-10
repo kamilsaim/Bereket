@@ -246,6 +246,12 @@ body.ro [onclick^="wipeData("],body.ro [onclick^="restoreLocalBackup("],
 body.ro .wr-hide{display:none!important}
 /* Kurlar izleyicide görünür kalsın ama değiştirilemesin (hesabı anlaması için) */
 body.ro #a-kurform input{pointer-events:none;opacity:.55}
+/* Servet geçmişi aralık düğmeleri (v1.21.0) */
+.rngrow{display:flex;gap:6px;margin:0 0 8px}
+.rngbtn{flex:1;border:1.5px solid rgba(30,86,49,.2);background:transparent;color:var(--green-dk);
+  font:700 12px/1 Manrope,sans-serif;padding:7px 0;border-radius:10px;cursor:pointer}
+.rngbtn.on{background:linear-gradient(135deg,var(--green),var(--green-dk));color:#fff;border-color:transparent}
+.rngbtn:active{transform:scale(.98)}
 details.kurbox{margin-top:8px}
 details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font-size:13.5px;padding:6px 0}
 </style>
@@ -450,9 +456,10 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.20.3';
+const APP_VERSION='1.21.0';
 const CHANGELOG=[
- {v:'1.20.3',d:'10.08.2026',n:'Kasadan çıkarılan kişinin hareketleri korunur ama adının yanında "(ayrıldı)" yazar; Ayarlar → Hareketler'e "hareket geçmişini temizle" düğmesi eklendi'},
+ {v:'1.21.0',d:'10.08.2026',n:'Servet geçmişi grafiği yenilendi: noktalar artık gerçek tarihe göre yerleşiyor (eskiden 3 günlük boşluk ile 30 günlük boşluk aynı görünüyordu), parmakla sürükleyerek günlük değer okunabiliyor, 1 Ay / 3 Ay / Tümü aralıkları, bugünkü nisab çizgisi, en düşük-en yüksek işaretleri ve yüzde değişim'},
+ {v:'1.20.3',d:'10.08.2026',n:'Kasadan çıkarılan kişinin hareketleri korunur ama adının yanında "(ayrıldı)" yazar; Ayarlar → Hareketler bölümüne "hareket geçmişini temizle" düğmesi eklendi'},
  {v:'1.20.2',d:'10.08.2026',n:'Hareketler kişi başlığı altında gruplanır — aynı kişinin arka arkaya yaptığı işlerde adı her satırda tekrarlanmaz, liste daha az yer kaplar'},
  {v:'1.20.1',d:'10.08.2026',n:'Üyelik bekçisi: kasa daveti ve kasadan çıkarılma artık 20 saniye içinde algılanır (Realtime yalnızca kasa verisini taşıyor, üyelik değişiklikleri yoklamayla anlaşılıyor); uygulama öne gelince de hemen kontrol edilir'},
  {v:'1.20.0',d:'10.08.2026',n:'Hareket geçmişi: paylaşılan kasada kimin ne eklediği/sildiği/güncellediği kaydedilir; karşı taraftan gelen değişiklikte bildirim (toast) gösterilir; Ayarlar → Hareketler kartından geçmiş görüntülenir'},
@@ -828,18 +835,107 @@ function renderZekat(){
     '<button class="iconbtn" onclick="delZekat(\''+z.id+'\')" aria-label="Sil">🗑️</button></div>').join('');
 }
 
+/* ═══════════ SERVET GEÇMİŞİ GRAFİĞİ (v1.21.0) ═══════════
+   Eski sürümde iki kusur vardı: (1) noktalar dizi SIRASINA göre yerleşiyordu,
+   history yalnızca değişiklik olan günleri kaydettiği için 3 günlük boşluk ile
+   30 günlük boşluk aynı genişlikte görünüyor, yani eğim gerçek hızı
+   göstermiyordu; (2) preserveAspectRatio="none" çizgiyi yatayda gerip kalınlığı
+   bozuyordu (daire koyulunca elipse dönerdi). İkisi de düzeltildi: x ekseni
+   gerçek tarihe göre, ölçek düzgün (meet). */
+let _sparkRange='all';                    // '1m' | '3m' | 'all'
+let _sparkPts=[];                         // {x,y,d,v} — dokunmatik okuma için
+function setSparkRange(r){_sparkRange=r;renderSpark()}
+function sparkData(){
+  const H=(S.history||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
+  if(_sparkRange==='all'||H.length<3)return H;
+  const days=_sparkRange==='1m'?30:90;
+  const lim=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+  const f=H.filter(h=>h.d>=lim);
+  return f.length>=2?f:H.slice(-2);       // aralıkta 2'den az nokta varsa son ikisi
+}
 function renderSpark(){
-  const el=document.getElementById('oz-spark');
-  const H=S.history;
-  if(H.length<2){el.innerHTML='<p class="mini" style="margin-top:0">Grafik, birkaç günlük kayıt oluştukça burada görünecek. Net servetiniz her değişiklikte günlük olarak kaydedilir.</p>';return}
-  const vs=H.map(h=>h.v),min=Math.min(...vs),max=Math.max(...vs),rng=(max-min)||1;
-  const W=300,Hh=70;
-  const pts=H.map((h,i)=>(i/(H.length-1)*W).toFixed(1)+','+(Hh-6-((h.v-min)/rng*(Hh-14))).toFixed(1)).join(' ');
+  const el=document.getElementById('oz-spark');if(!el)return;
+  const H=sparkData();
+  if(H.length<2){
+    el.innerHTML='<p class="mini" style="margin-top:0">Grafik, birkaç günlük kayıt oluştukça burada görünecek. Net servetiniz her değişiklikte günlük olarak kaydedilir.</p>';
+    return;
+  }
+  const W=340,Hh=132,PADL=6,PADR=6,PADT=16,PADB=22;
+  const vs=H.map(h=>h.v);
+  let lo=Math.min(...vs),hi=Math.max(...vs);
+  /* Nisab çizgisi yalnızca veri aralığına yakınsa çizilir; çok uzaktaysa
+     eğriyi ezip grafiği okunamaz hale getirirdi — o durumda not olarak yazılır.
+     NOT: geçmişteki altın kurunu saklamıyoruz, bu yüzden çizgi BUGÜNKÜ nisabı
+     gösterir; etiketinde de böyle yazıyor. */
+  const nis=NISAB_GR*(S.rates.gram||0);
+  const span0=(hi-lo)||Math.abs(hi)||1;
+  const nisIn=nis>0&&nis>=lo-span0*0.5&&nis<=hi+span0*0.5;
+  if(nisIn){lo=Math.min(lo,nis);hi=Math.max(hi,nis)}
+  const pad=((hi-lo)||Math.abs(hi)||1)*0.12;
+  lo-=pad;hi+=pad;
+  const rng=(hi-lo)||1;
+  const t0=Date.parse(H[0].d+'T00:00:00'),t1=Date.parse(H[H.length-1].d+'T00:00:00');
+  const tspan=(t1-t0)||1;
+  const X=d=>PADL+((Date.parse(d+'T00:00:00')-t0)/tspan)*(W-PADL-PADR);
+  const Y=v=>PADT+(1-(v-lo)/rng)*(Hh-PADT-PADB);
+  _sparkPts=H.map(h=>({x:X(h.d),y:Y(h.v),d:h.d,v:h.v}));
+  const pts=_sparkPts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+  const base=Hh-PADB;
+  const iMin=vs.indexOf(Math.min(...vs)),iMax=vs.indexOf(Math.max(...vs));
   const diff=vs[vs.length-1]-vs[0];
-  el.innerHTML='<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:80px" preserveAspectRatio="none" aria-hidden="true">'+
-   '<polyline points="'+pts+'" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
-   '<polygon points="0,'+Hh+' '+pts+' '+W+','+Hh+'" fill="rgba(201,162,39,.12)" stroke="none"/></svg>'+
-   '<div class="mini">'+trDate(H[0].d)+' → '+trDate(H[H.length-1].d)+' · Değişim: <b class="num" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'−')+fmt(Math.abs(diff))+' ₺</b></div>';
+  const pct=vs[0]?(diff/Math.abs(vs[0])*100):0;
+  const rb=(k,t)=>'<button onclick="setSparkRange(\''+k+'\')" class="rngbtn'+(_sparkRange===k?' on':'')+'">'+t+'</button>';
+  el.innerHTML=
+  '<div class="rngrow">'+rb('1m','1 Ay')+rb('3m','3 Ay')+rb('all','Tümü')+'</div>'+
+  '<div id="sp-wrap" style="position:relative;touch-action:pan-y">'+
+    '<svg id="sp-svg" viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:auto;display:block;overflow:visible" role="img" aria-label="Net servet geçmişi grafiği">'+
+      '<defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0%" stop-color="var(--gold)" stop-opacity=".28"/>'+
+        '<stop offset="100%" stop-color="var(--gold)" stop-opacity=".02"/>'+
+      '</linearGradient></defs>'+
+      '<polygon points="'+PADL+','+base+' '+pts+' '+(W-PADR)+','+base+'" fill="url(#spg)" stroke="none"/>'+
+      (nisIn?'<line x1="'+PADL+'" y1="'+Y(nis).toFixed(1)+'" x2="'+(W-PADR)+'" y2="'+Y(nis).toFixed(1)+'" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 4" opacity=".55"/>'+
+             '<text x="'+(W-PADR)+'" y="'+(Y(nis)-4).toFixed(1)+'" text-anchor="end" font-size="8.5" fill="var(--green)" opacity=".8">bugünkü nisab</text>':'')+
+      '<polyline points="'+pts+'" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<circle cx="'+_sparkPts[iMin].x.toFixed(1)+'" cy="'+_sparkPts[iMin].y.toFixed(1)+'" r="2.6" fill="var(--red)"/>'+
+      '<circle cx="'+_sparkPts[iMax].x.toFixed(1)+'" cy="'+_sparkPts[iMax].y.toFixed(1)+'" r="2.6" fill="var(--green)"/>'+
+      '<line id="sp-cur" x1="0" y1="'+PADT+'" x2="0" y2="'+base+'" stroke="var(--green-dk)" stroke-width="1" opacity="0"/>'+
+      '<circle id="sp-dot" cx="0" cy="0" r="4" fill="var(--green-dk)" stroke="#fff" stroke-width="1.5" opacity="0"/>'+
+      '<text x="'+PADL+'" y="'+(Hh-6)+'" font-size="8.5" fill="var(--muted)">'+trDate(H[0].d)+'</text>'+
+      '<text x="'+(W-PADR)+'" y="'+(Hh-6)+'" text-anchor="end" font-size="8.5" fill="var(--muted)">'+trDate(H[H.length-1].d)+'</text>'+
+    '</svg>'+
+    '<div id="sp-tip" style="position:absolute;top:0;display:none;pointer-events:none;background:var(--green-dk);color:#fff;font:700 11px/1.35 Manrope,sans-serif;padding:5px 8px;border-radius:9px;white-space:nowrap;transform:translateX(-50%);box-shadow:0 4px 12px rgba(0,0,0,.18)"></div>'+
+  '</div>'+
+  '<div class="mini" style="display:flex;justify-content:space-between;gap:8px">'+
+    '<span>En düşük <b class="num">'+fmt(Math.min(...vs))+'</b> · En yüksek <b class="num">'+fmt(Math.max(...vs))+'</b></span>'+
+    '<span>Değişim <b class="num" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'−')+fmt(Math.abs(diff))+' ₺'+(isFinite(pct)&&vs[0]?' (%'+fmt2(Math.abs(pct))+')':'')+'</b></span>'+
+  '</div>'+
+  (nisIn?'':'<div class="mini" style="margin-top:2px;opacity:.75">Bugünkü nisab ('+fmt(nis)+' ₺) grafik aralığının dışında kaldığı için çizilmedi.</div>')+
+  '<div class="mini" style="margin-top:2px;opacity:.7">Grafiğe dokunup parmağınızı sürükleyerek günlük değerleri görebilirsiniz.</div>';
+  bindSpark();
+}
+/* Dokunmatik/fare ile değer okuma. touch-action:pan-y sarmalayıcıda olduğu için
+   dikey kaydırma bozulmaz; yatay sürükleme bize gelir, preventDefault gerekmez. */
+function bindSpark(){
+  const wrap=document.getElementById('sp-wrap');if(!wrap)return;
+  const cur=document.getElementById('sp-cur'),dot=document.getElementById('sp-dot'),tip=document.getElementById('sp-tip');
+  const W=340;
+  const show=cx=>{
+    const rect=wrap.getBoundingClientRect();
+    if(!rect.width)return;
+    const vx=(cx-rect.left)/rect.width*W;          // viewBox koordinatına çevir
+    let best=_sparkPts[0];
+    for(const p of _sparkPts)if(Math.abs(p.x-vx)<Math.abs(best.x-vx))best=p;
+    cur.setAttribute('x1',best.x);cur.setAttribute('x2',best.x);cur.setAttribute('opacity','.35');
+    dot.setAttribute('cx',best.x);dot.setAttribute('cy',best.y);dot.setAttribute('opacity','1');
+    tip.textContent=fmt(best.v)+' ₺ · '+trDate(best.d);
+    tip.style.display='block';
+    tip.style.left=Math.min(92,Math.max(8,best.x/W*100))+'%';
+  };
+  const hide=()=>{cur.setAttribute('opacity','0');dot.setAttribute('opacity','0');tip.style.display='none'};
+  wrap.onpointerdown=e=>show(e.clientX);
+  wrap.onpointermove=e=>{if(e.buttons||e.pointerType==='touch')show(e.clientX)};
+  wrap.onpointerup=hide;wrap.onpointercancel=hide;wrap.onpointerleave=hide;
 }
 
 const HAVL_DAYS=354;
