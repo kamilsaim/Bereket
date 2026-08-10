@@ -1351,9 +1351,21 @@ function cloudLoginGoogle(){
 }
 
 // Play Store zorunluluğu: uygulama içinden hesap + bulut verisi kalıcı silme (iki aşamalı onay)
-function deleteAccount(){
+async function deleteAccount(){
+  /* Sahibi olduğum kasaların akıbetini ÖNCEDEN göster: başka üyesi olan kasa
+     silinmez, en eski üyeye devrolur — kullanıcı bunu bilerek onaylasın. */
+  let extra='';
+  try{
+    const s=await sbToken();
+    if(s){
+      const vs=await listVaults();
+      const owned=(vs||[]).filter(v=>v.owner_id===s.user.id);
+      if(owned.length)extra=`<p class="mini">Sahibi olduğunuz kasalar: <b>${owned.map(v=>esc(v.name)).join(', ')}</b>. Başka üyesi olan kasalar en eski üyeye <b>devredilir</b> (silinmez), üyesi olmayanlar verileriyle <b>silinir</b>.</p>`;
+    }
+  }catch(e){}
   sheet(`<h3>⚠️ Hesabı Sil</h3>
   <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Buluttaki <b>Bereket verileriniz</b> kalıcı olarak silinir.</p>
+  ${extra}
   <p class="mini" style="opacity:.85">ℹ️ Google hesabınız yalnızca başka hiçbir uygulamada veriniz kalmadıysa tamamen silinir; aksi halde hesabınız korunur ve sadece Bereket verisi silinir.</p>
   <p class="mini">Bu cihazdaki yerel verileriniz cihazda kalır; onları ayrıca "Tüm Verileri Sil" ile temizleyebilirsiniz.</p>
   <button class="btn danger" onclick="deleteAccountConfirm()">Devam et →</button>
@@ -1376,9 +1388,11 @@ async function deleteAccountRun(){
       const msg=await r.text().catch(()=>'');
       throw new Error(msg||('HTTP '+r.status));
     }
-    let acc=false;try{const j=await r.json();acc=!!j.accountDeleted;}catch(e){}
-    setSession(null);localStorage.removeItem(CLOUD_SYNC_KEY);
+    let acc=false,xfer=0;try{const j=await r.json();acc=!!j.accountDeleted;xfer=j.vaultsTransferred||0;}catch(e){}
+    rtClose();
+    setSession(null);localStorage.removeItem(CLOUD_SYNC_KEY);localStorage.removeItem(VAULT_KEY);
     toast(acc?'Hesabınız ve Bereket verileriniz silindi':'Bereket bulut verileriniz silindi (hesabınız diğer uygulamalarda kullanıldığı için korundu)');
+    if(xfer)setTimeout(()=>toast(xfer+' ortak kasa diğer üyelere devredildi'),2400);
     renderCloud();
   }catch(e){
     toast('Hesap silinemedi: '+(e.message||'sunucu hatası'));
@@ -1629,10 +1643,15 @@ async function rtConnect(){
     rtClose();
     const v=activeVault();if(v==='local')return;
     const s=await sbToken();if(!s)return;
-    try{_rt=new WebSocket(rtUrl());}catch(e){return}
-    _rt.onopen=()=>{
+    let w;try{w=new WebSocket(rtUrl());}catch(e){return}
+    _rt=w;
+    /* Olay işleyicileri global _rt yerine YEREL w'yi kullanır: soket açılmadan
+       önce rtClose() çalışırsa (_rt=null) veya araya yeni soket girerse, eski
+       soketin işleyicisi yanlış nesneye dokunmasın. */
+    w.onopen=()=>{
+      if(_rt!==w){try{w.close()}catch(e){}return}   // bu soket artık güncel değil
       _rtOpen=true;setPoll();_rtBackoff=1000;
-      _rt.send(JSON.stringify({topic:'realtime:brkt_vault_'+v,event:'phx_join',ref:String(++_rtRef),payload:{
+      w.send(JSON.stringify({topic:'realtime:brkt_vault_'+v,event:'phx_join',ref:String(++_rtRef),payload:{
         config:{
           broadcast:{self:false},presence:{key:''},
           postgres_changes:[{event:'UPDATE',schema:'public',table:'brkt_vaults',filter:'id=eq.'+v}]
@@ -1641,10 +1660,11 @@ async function rtConnect(){
       }}));
       clearInterval(_rtHb);
       _rtHb=setInterval(()=>{
-        if(_rt&&_rt.readyState===1)_rt.send(JSON.stringify({topic:'phoenix',event:'heartbeat',ref:String(++_rtRef),payload:{}}));
+        if(w.readyState===1)w.send(JSON.stringify({topic:'phoenix',event:'heartbeat',ref:String(++_rtRef),payload:{}}));
       },30000);
     };
-    _rt.onmessage=async ev=>{
+    w.onmessage=async ev=>{
+      if(_rt!==w)return;
       let m=null;try{m=JSON.parse(ev.data)}catch(e){return}
       if(m.event==='phx_reply'){
         if(m.payload&&m.payload.status==='error'){
@@ -1657,8 +1677,8 @@ async function rtConnect(){
       const row=await cloudLoad();
       if(row&&row.data)applyOrQueue(row);
     };
-    _rt.onclose=()=>{_rtOpen=false;setPoll();clearInterval(_rtHb);rtRetry()};
-    _rt.onerror=()=>{try{_rt.close()}catch(e){}};
+    w.onclose=()=>{if(_rt!==w)return;_rtOpen=false;setPoll();clearInterval(_rtHb);rtRetry()};
+    w.onerror=()=>{try{w.close()}catch(e){}};
   }finally{_rtReconnecting=false}
 }
 function rtRetry(){
