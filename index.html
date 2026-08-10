@@ -456,6 +456,83 @@ const CHANGELOG=[
 const RATE_LABELS={gram:'Gram Altın (₺)',ceyrek:'Çeyrek Altın (₺)',yarim:'Yarım Altın (₺)',tam:'Tam Altın (₺)',cumhuriyet:'Cumhuriyet Altını (₺)',ata:'Ata Altın (₺)',gumus:'Gümüş / gr (₺)',usd:'Dolar (₺)',eur:'Euro (₺)'};
 const DIST_COLORS={gold:'#C9A227',gumus:'#9aa5ad',usd:'#3d7a52',eur:'#1E5631',tl:'#7fb08f',diger:'#d6c690'};
 
+/* ==== BEREKET-SYNC-CORE-START ==== */
+/* Paylaşılan kasa birleştirme çekirdeği (v1.19.0).
+   Bu blok SAF fonksiyonlardan oluşur: DOM'a, S'e, localStorage'a DOKUNMAZ.
+   tests/sync-core.test.mjs bu bloğu çıkarıp Node ile test eder — işaret
+   yorumlarının metnini değiştirmeyin. */
+const SYNC_COLLECTIONS=['assets','debts','trusts','zakat'];
+const TOMB_DAYS=90;            // mezar taşı ömrü
+let _skewMs=0;                 // sunucu-cihaz saat farkı düzeltmesi
+function setSkew(ms){_skewMs=Number(ms)||0}
+function nowISO(){return new Date(Date.now()+_skewMs).toISOString()}
+function stamp(o){o.mod=nowISO();return o}
+function alive(r){return !!r&&!r.del}
+function isNewer(a,b){return String((a&&a.mod)||'')>String((b&&b.mod)||'')}
+function stampAll(d,iso){
+  if(!d)return d;
+  SYNC_COLLECTIONS.forEach(k=>{
+    (d[k]||[]).forEach(r=>{
+      if(!r.mod)r.mod=iso;
+      (r.payments||[]).forEach(p=>{if(!p.mod)p.mod=iso});
+    });
+  });
+  return d;
+}
+/* Kayıt bazlı birleştirme: aynı id'de mod damgası yeni olan kazanır.
+   Silme, diziden çıkarmak değil {del:true} mezar taşıdır — yoksa bir cihazın
+   sildiği kaydı diğeri geri diriltir. */
+function mergeList(local,remote){
+  const out=new Map();
+  (remote||[]).forEach(r=>{if(r&&r.id)out.set(r.id,Object.assign({},r))});
+  (local||[]).forEach(l=>{
+    if(!l||!l.id)return;
+    const r=out.get(l.id);
+    if(!r){out.set(l.id,Object.assign({},l));return}
+    const win=Object.assign({},isNewer(l,r)?l:r);
+    if((l.payments&&l.payments.length)||(r.payments&&r.payments.length)){
+      win.payments=mergeList(l.payments,r.payments);
+    }
+    // Kazanan taraf düzenleme ise mezar taşı izini taşımasın
+    if(!(isNewer(l,r)?l:r).del)delete win.del;
+    out.set(l.id,win);
+  });
+  return Array.from(out.values());
+}
+function mergeData(local,remote){
+  if(!remote)return local;
+  if(!local)return remote;
+  const out={};
+  SYNC_COLLECTIONS.forEach(k=>{out[k]=mergeList(local[k],remote[k])});
+  const localNewer=String(local.mod||'')>String(remote.mod||'');
+  const older=localNewer?remote:local, fresh=localNewer?local:remote;
+  // history: gün anahtarı üzerinden birleş, çakışan günde yeni blob kazanır
+  const hm=new Map();
+  (older.history||[]).forEach(e=>{if(e&&e.d)hm.set(e.d,e)});
+  (fresh.history||[]).forEach(e=>{if(e&&e.d)hm.set(e.d,e)});
+  out.history=Array.from(hm.values()).sort((a,b)=>a.d<b.d?-1:1).slice(-180);
+  // kurlar tek blok: ratesAt'ı yeni olan taraf
+  const rsrc=String(local.ratesAt||'')>=String(remote.ratesAt||'')?local:remote;
+  out.rates=Object.assign({},rsrc.rates||{});
+  out.ratesAt=rsrc.ratesAt||null;
+  out.ratesDate=rsrc.ratesDate||null;
+  // havl kendi damgasıyla
+  const hsrc=String(local.havlMod||'')>=String(remote.havlMod||'')?local:remote;
+  out.havl=hsrc.havl||null;
+  out.havlMod=hsrc.havlMod||null;
+  out.mod=fresh.mod||null;
+  // hide BİLİNÇLİ olarak taşınmaz: cihaz ayarıdır, localStorage'da tutulur
+  return out;
+}
+function gcTombstones(d,refISO){
+  const lim=new Date(new Date(refISO||nowISO()).getTime()-TOMB_DAYS*864e5).toISOString();
+  SYNC_COLLECTIONS.forEach(k=>{
+    if(Array.isArray(d[k]))d[k]=d[k].filter(r=>!(r.del&&String(r.mod||'')<lim));
+  });
+  return d;
+}
+/* ==== BEREKET-SYNC-CORE-END ==== */
+
 let S=load();
 function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,history:[],hide:false}}
 function load(){
