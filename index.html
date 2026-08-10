@@ -1500,7 +1500,9 @@ async function doCloudPush(silent){
       const merged=gcTombstones(mergeData(S,Object.assign(defaults(),row.data||{})));
       const stampIso=nowISO();
       merged.mod=stampIso;
-      const r=await sbFetch('brkt_vaults?id=eq.'+v+'&updated_at=eq.'+encodeURIComponent(row.updated_at),
+      /* select=id: dönen gövde tek kolona iner (tüm blob'u geri indirmeyelim),
+         ama dizi uzunluğu hâlâ "kaç satır güncellendi" sinyalini verir. */
+      const r=await sbFetch('brkt_vaults?id=eq.'+v+'&updated_at=eq.'+encodeURIComponent(row.updated_at)+'&select=id',
         {method:'PATCH',headers:{Prefer:'return=representation'},
          body:JSON.stringify({data:merged,updated_at:stampIso})});
       if(!r)throw 0;
@@ -1631,10 +1633,26 @@ async function migrateToVault(){
     return;
   }
   const row=await legacyLoad();
-  let base=(row&&row.data&&Object.keys(row.data).length)?row.data:d;
+  /* Yerel taraf: eski bereket_v1 verisi + varsa önceki başarısız denemeden kalan
+     'local' kasası (o denemeden sonra girilen kayıtlar orada olabilir). */
+  let localD=d;
+  try{const lv=JSON.parse(localStorage.getItem(dataKey('local')));
+      if(lv&&Object.keys(lv).length)localD=localD?mergeData(localD,Object.assign(defaults(),lv)):lv;
+  }catch(e){}
+  const remoteD=(row&&row.data&&Object.keys(row.data).length)?Object.assign(defaults(),row.data):null;
+  /* İki taraf da doluysa BİRLEŞTİR: eski akış birini seçiyordu, o da çevrimdışı
+     girilen kayıtları veya bulut yedeğini feda etme riski taşıyordu. */
+  let base=(localD&&remoteD)?mergeData(localD,remoteD):(remoteD||localD);
   if(base){stampAll(base,base.mod||iso);if(!base.havlMod&&base.havl)base.havlMod=base.mod||iso;delete base.hide}
   const v=await createVault('Kasam',base||defaults());
-  if(!v)return;                      // ağ hatası: bayrak yazılmaz, sonra tekrar denenir
+  if(!v){
+    /* Ağ/sunucu hatası: kullanıcıyı BOŞ EKRANLA karşılamayalım. Veriyi geçici
+       'local' kasasına yaz, MIGRATED_KEY'i YAZMA — sonraki açılışta bulut
+       kasası kurulur ve buradaki kayıtlar yukarıdaki birleştirmeyle taşınır. */
+    localStorage.setItem(VAULT_KEY,'local');
+    if(base)localStorage.setItem(dataKey('local'),JSON.stringify(base));
+    return;
+  }
   localStorage.setItem(VAULT_KEY,v.id);
   localStorage.setItem(dataKey(v.id),JSON.stringify(base||defaults()));
   localStorage.setItem(MIGRATED_KEY,iso);
