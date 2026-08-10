@@ -246,6 +246,10 @@ body.ro [onclick^="wipeData("],body.ro [onclick^="restoreLocalBackup("],
 body.ro .wr-hide{display:none!important}
 /* Kurlar izleyicide görünür kalsın ama değiştirilemesin (hesabı anlaması için) */
 body.ro #a-kurform input{pointer-events:none;opacity:.55}
+/* Grafikte parmak gezdirirken iOS'un metin seçimi/büyüteç (callout) modunun
+   açılmasını engelle — dokunmatik okuma kullanılamaz hale geliyordu. */
+#sp-wrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#sp-wrap svg,#sp-wrap text{-webkit-user-select:none;user-select:none;pointer-events:none}
 /* Servet geçmişi aralık düğmeleri (v1.21.0) */
 .rngrow{display:flex;gap:6px;margin:0 0 8px}
 .rngbtn{flex:1;border:1.5px solid rgba(30,86,49,.2);background:transparent;color:var(--green-dk);
@@ -257,6 +261,48 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
 </style>
 </head>
 <body>
+
+<script>
+/* ═══════════ KURTARMA AĞI (v1.21.1) ═══════════
+   Tek dosyalık uygulamada ana script parse edilemezse (bir sözdizimi hatası
+   yeterli) hiçbir şey çalışmaz, ekran bomboş kalır ve kullanıcının elinde
+   HİÇBİR yol olmaz — v1.20.3'te tam bu yaşandı ve service worker bozuk sürümü
+   önbelleğe aldığı için uygulama açılmadı. Bu erken script parse hatasını
+   yakalayıp önbelleği temizleyen bir kurtarma ekranı gösterir.
+   localStorage'a ASLA dokunmaz: kullanıcının verisi orada. */
+window.__brktBoot=false;
+window.addEventListener('error',function(e){
+  if(window.__brktBoot)return;                 // ana script çalıştıysa karışma
+  if(!document.body||document.getElementById('brkt-recover'))return;
+  var d=document.createElement('div');
+  d.id='brkt-recover';
+  d.setAttribute('style','position:fixed;inset:0;z-index:9999;background:#FAF7F0;color:#14402a;'+
+    'font:15px/1.55 system-ui,-apple-system,sans-serif;padding:30px 22px;display:flex;'+
+    'flex-direction:column;justify-content:center;gap:14px');
+  d.innerHTML='<div style="font:700 20px/1.3 system-ui,-apple-system,sans-serif">Uygulama yüklenemedi</div>'+
+    '<div>Bu sürümde bir hata var. Önbelleği temizleyip en güncel sürümü indirmeyi deneyin.<br>'+
+    '<b>Verileriniz bu cihazda saklıdır ve silinmez.</b></div>'+
+    '<button id="brkt-rec-btn" style="border:none;background:#1E5631;color:#fff;'+
+    'font:700 15px/1 system-ui,-apple-system,sans-serif;padding:16px;border-radius:14px">'+
+    'Önbelleği temizle ve yeniden yükle</button>'+
+    '<div style="font-size:12px;opacity:.65;word-break:break-word">Hata: '+
+    String((e&&e.message)||'bilinmiyor').slice(0,160)+'</div>';
+  document.body.appendChild(d);
+  document.getElementById('brkt-rec-btn').onclick=function(){
+    var fin=function(){location.reload()};
+    try{
+      var ps=[];
+      if(window.caches&&caches.keys)ps.push(caches.keys().then(function(ks){
+        return Promise.all(ks.map(function(k){return caches.delete(k)}))}));
+      if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)
+        ps.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+          return Promise.all(rs.map(function(r){return r.unregister()}))}));
+      Promise.all(ps).then(fin,fin);
+      setTimeout(fin,2500);                    // takılırsa yine yenile
+    }catch(x){fin()}
+  };
+});
+</script>
 
 <header>
   <div class="hrow">
@@ -456,8 +502,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.21.0';
+const APP_VERSION='1.21.1';
 const CHANGELOG=[
+ {v:'1.21.1',d:'10.08.2026',n:'Kurtarma ekrani: ana script bozulursa bos ekran yerine onbellegi temizleyip yeniden yukleyen ekran cikar (verilere dokunulmaz); grafikte parmak gezdirirken iOS secim/buyutec modu artik acilmiyor; yeni cihaz veya tarayicida ilk acilista bulut verisi bir denemede gelmezse birkac kez daha denenir, bos ekranla kalinmaz'},
  {v:'1.21.0',d:'10.08.2026',n:'Servet geçmişi grafiği yenilendi: noktalar artık gerçek tarihe göre yerleşiyor (eskiden 3 günlük boşluk ile 30 günlük boşluk aynı görünüyordu), parmakla sürükleyerek günlük değer okunabiliyor, 1 Ay / 3 Ay / Tümü aralıkları, bugünkü nisab çizgisi, en düşük-en yüksek işaretleri ve yüzde değişim'},
  {v:'1.20.3',d:'10.08.2026',n:'Kasadan çıkarılan kişinin hareketleri korunur ama adının yanında "(ayrıldı)" yazar; Ayarlar → Hareketler bölümüne "hareket geçmişini temizle" düğmesi eklendi'},
  {v:'1.20.2',d:'10.08.2026',n:'Hareketler kişi başlığı altında gruplanır — aynı kişinin arka arkaya yaptığı işlerde adı her satırda tekrarlanmaz, liste daha az yer kaplar'},
@@ -2314,6 +2361,23 @@ async function handleAuthRedirect(){
   await processAuthTokens(at,rt,ei);
 }
 
+/* Yeni bir cihazda/tarayıcıda ilk açılışta yerel kopya yoktur; veri yalnızca
+   buluttan gelir. initialSync'in tek denemesi ağ gecikmesi/anlık hata yüzünden
+   boş dönerse kullanıcı BOŞ EKRAN görüyor ve elle kasa değiştirmedikçe
+   düzelmiyordu (iOS Safari'de yaşandı). Burada kısa aralıklarla birkaç kez daha
+   deniyoruz ve beklerken kullanıcıya haber veriyoruz. */
+async function ensureVaultDataLoaded(){
+  if(!getSession()||activeVault()==='local')return;
+  if(!isEmptyData(S))return;
+  toast('Bulut verileri yükleniyor…');
+  for(let i=0;i<4;i++){
+    await new Promise(r=>setTimeout(r,i?1200:400));
+    let row=null;try{row=await cloudLoad()}catch(e){}
+    if(row&&row.data&&!isEmptyData(row.data)){applyCloud(row);toast('Bulut verileriniz yüklendi ✓');return}
+    if(!isEmptyData(S))return;               // araya giren senkron doldurduysa
+  }
+  toast('Bulut verileri şu an alınamadı, bağlantı gelince otomatik yüklenecek');
+}
 /* Tek seferlik migrasyon (v1.18.0 → v1.19.0).
    Geri dönüş sigortası: eski brkt_data satırı silinmez, öncesinde
    bereket_bak_premigrate anahtarına tam yedek alınır. */
@@ -2559,12 +2623,16 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
   });
 }
 (async()=>{
+  /* Buraya gelindiyse ana script SORUNSUZ PARSE EDİLDİ; kurtarma ekranı artık
+     devreye girmesin (normal çalışma zamanı hataları için gösterilmemeli). */
+  window.__brktBoot=true;
   await handleAuthRedirect();
   {const _s=getSession();if(_s&&_s.user)setMe(_s.user.email);}
   if(getSession())await claimInvites();
   await migrateToVault();
   S=load();renderAll();                    // kasa anahtarı değiştiği için yeniden yükle ve tekrar çiz
   await initialSync();
+  await ensureVaultDataLoaded();            // yeni cihaz/tarayıcıda boş ekranla kalmayı önler
   await refreshVaults();
   /* İki pencere üst üste açılmasın: davet penceresi çıktıysa "buluta taşı"
      teklifi bir sonraki açılışa kalır. */
