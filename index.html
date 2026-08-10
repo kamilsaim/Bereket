@@ -412,6 +412,7 @@ const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AA
 const KEY_LEGACY='bereket_v1';          // v1.18.0 ve öncesi (migrasyon kaynağı)
 const VAULT_KEY='bereket_vault';         // aktif kasa id'si
 const MIGRATED_KEY='bereket_migrated_v2';
+const PROMOTE_ASKED_KEY='bereket_promote_asked';  // "yerel veriyi buluta taşı" teklifi bir kez sorulur
 /* Veri kasa başına ayrı anahtarda tutulur: çevrimdışıyken kasa değiştirmek
    çalışsın ve ortak kasanın yedeği kendi kasanın üstüne binmesin. */
 function activeVault(){return localStorage.getItem(VAULT_KEY)||'local'}
@@ -1714,13 +1715,14 @@ function maybeShowJoinPrompt(){
      oraya düşer) pencere gösterme — "geç" demenin anlamı olmaz. */
   const vs=_joinedVaults.filter(v=>v.id!==activeVault());
   _joinedVaults=[];
-  if(!vs.length)return;
+  if(!vs.length)return false;
   const btns=vs.map(v=>`<button class="btn primary" onclick="switchVault('${v.id}')">🔁 ${esc(v.name)} kasasına geç</button>`).join('');
   sheet(`<h3>🤝 Kasa Davetiniz Kabul Edildi</h3>
   <p class="mini" style="margin-top:0">${vs.length>1?vs.length+' kasaya':'<b>'+esc(vs[0].name)+'</b> kasasına'} eklendiniz. Verileri görmek için o kasaya geçmeniz gerekiyor.</p>
   ${btns}
   <p class="mini">Daha sonra <b>Ayarlar → Kasalar</b>'dan da geçebilirsiniz.</p>
   <button class="btn ghost" onclick="closeSheet()">Şimdi değil</button>`);
+  return true;
 }
 async function openMembers(vid){
   const r=await sbFetch('brkt_members?vault_id=eq.'+vid+'&select=id,email,role,status,user_id&order=invited_at.asc');
@@ -2059,6 +2061,36 @@ async function handleAuthRedirect(){
 /* Tek seferlik migrasyon (v1.18.0 → v1.19.0).
    Geri dönüş sigortası: eski brkt_data satırı silinmez, öncesinde
    bereket_bak_premigrate anahtarına tam yedek alınır. */
+/* Oturumsuz kullanıp SONRADAN giriş yapan kullanıcı için: migrateToVault
+   bayrağını oturumsuzken yazdığı için ikinci kez çalışmaz ve kişi giriş yapmış
+   olmasına rağmen hiç bulut kasası edinmezdi (yedeksiz kalırdı). Elle "Yeni
+   Kasa" açmak da BOŞ kasa oluşturup ekranı boş gösterdiği için "verilerim
+   gitti" izlenimi veriyordu. Burada yerel veriyi buluta taşımayı teklif
+   ediyoruz; karar kullanıcıya ait, sessizce yükleme yapmıyoruz. */
+function maybePromoteLocalVault(){
+  if(!getSession())return;
+  if(activeVault()!=='local')return;
+  if(isEmptyData(S))return;
+  if(_vaults.some(v=>v.owner_id===(getSession().user||{}).id))return;  // zaten kendi bulut kasası var
+  if(localStorage.getItem(PROMOTE_ASKED_KEY))return;
+  sheet(`<h3>☁️ Verilerinizi Buluta Taşıyın</h3>
+  <p class="mini" style="margin-top:0">Bu cihazdaki verileriniz henüz buluta yedeklenmiyor. Bir kasa oluşturup taşıyalım mı? Böylece yedeklenir, diğer cihazlarınızda görünür ve dilerseniz paylaşabilirsiniz.</p>
+  <button class="btn primary" onclick="promoteLocalVault()">Kasa oluştur ve taşı</button>
+  <button class="btn ghost" onclick="skipPromote()">Şimdi değil</button>`);
+}
+function skipPromote(){localStorage.setItem(PROMOTE_ASKED_KEY,nowISO());closeSheet()}
+async function promoteLocalVault(){
+  closeSheet();toast('Kasa oluşturuluyor…');
+  const v=await createVault('Kasam',S);
+  if(!v){toast('Kasa oluşturulamadı: '+(_lastVaultErr||'bilinmeyen hata'));return}
+  /* Yerel kopya BİLİNÇLİ olarak silinmiyor: taşıma sonrası bir aksilik olursa
+     bereket_v1_local hâlâ elimizde kalsın. */
+  localStorage.setItem(dataKey(v.id),JSON.stringify(S));
+  localStorage.setItem(PROMOTE_ASKED_KEY,nowISO());
+  await refreshVaults();
+  await switchVault(v.id);
+  toast('Verileriniz buluta taşındı ✓');
+}
 async function migrateToVault(){
   if(localStorage.getItem(MIGRATED_KEY))return;
   const legacy=localStorage.getItem(KEY_LEGACY);
@@ -2277,7 +2309,9 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
   S=load();renderAll();                    // kasa anahtarı değiştiği için yeniden yükle ve tekrar çiz
   await initialSync();
   await refreshVaults();
-  maybeShowJoinPrompt();                   // yeni katılınan kasa varsa "geç" penceresi
+  /* İki pencere üst üste açılmasın: davet penceresi çıktıysa "buluta taşı"
+     teklifi bir sonraki açılışa kalır. */
+  if(!maybeShowJoinPrompt())maybePromoteLocalVault();
   if(getSession())rtConnect();
   autoFetchRatesIfStale();
   maybeNotifyHavl();
