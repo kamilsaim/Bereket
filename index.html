@@ -445,8 +445,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.19.0';
+const APP_VERSION='1.19.1';
 const CHANGELOG=[
+ {v:'1.19.1',d:'10.08.2026',n:'Kasa daveti kabul edilince "kasaya geç" penceresi gösterilir (davetli paylaşılan kasayı bulamıyordu); kasa oluşturmayı engelleyen RLS politikası düzeltildi; kasa oluşturma hataları artık ayrıntılı bildiriliyor'},
  {v:'1.19.0',d:'10.08.2026',n:'Paylaşılan kasalar: verilerinizi eşinizle veya ortağınızla paylaşın (Düzenleyen/İzleyici yetkileri, e-posta ile davet), birden çok kasa arasında geçiş, değişikliklerin karşı tarafta anında görünmesi (Realtime), kayıt bazlı birleştirme ile çift taraflı düzenlemede veri kaybının önlenmesi'},
  {v:'1.18.0',d:'29.07.2026',n:'Borç/alacak ↔ varlık aktarımı: yeni kayıt, ödeme ekleme ve "ödendi" işaretlemede ilgili varlık kaydı seçilerek otomatik güncellenir'},
  {v:'1.17.0',d:'28.07.2026',n:'Çevrimdışı çalışma (service worker + manifest); bulut senkron durumu ve başarısız yedekleme uyarısı; havl vade hatırlatıcısı (bildirim); kur tazeliği göstergesi ve 24 saatten eski kur uyarısı'},
@@ -1650,11 +1651,37 @@ function renderVaults(){
 /* ── Üyelik yönetimi (davet/rol/çıkarma/devir/kasa silme) ── */
 /* Davet edilen kişi kendi Google hesabıyla girdiği anda kasa listesinde belirir:
    sunucudaki brkt_claim_invites() JWT e-postasıyla eşleşen davetleri bağlar. */
+let _joinedVaults=[];   // bu açılışta yeni katılınan kasalar (geçiş penceresi için)
 async function claimInvites(){
   try{
+    /* Hangi kasaya yeni katıldığımızı bilmek için önce/sonra farkı alınır:
+       brkt_claim_invites() yalnızca sayı döndürüyor. */
+    const before=await listVaults();
+    const beforeIds={};(before||[]).forEach(v=>{beforeIds[v.id]=1});
     const r=await sbFetch('rpc/brkt_claim_invites',{method:'POST',body:'{}'});
-    if(r&&r.ok){const n=await r.json();if(n>0)toast(n+' kasa davetiniz kabul edildi ✓')}
+    if(!(r&&r.ok))return;
+    const n=await r.json();
+    if(!n||n<=0)return;
+    const after=await listVaults();
+    _joinedVaults=(after||[]).filter(v=>!beforeIds[v.id]);
   }catch(e){}
+}
+/* Davet kabul edildiğinde kullanıcı kendi kasasında kalıyor ve paylaşılan
+   kasayı nerede bulacağını bilmiyordu. Açılış tamamlandıktan sonra (kasa
+   listesi hazırken) geçiş penceresi göster. Otomatik geçirmiyoruz: kullanıcı
+   kendi kasasında çalışıyor olabilir. */
+function maybeShowJoinPrompt(){
+  /* Zaten o kasadaysak (hiç kasası olmayan davetli migrateToVault ile doğrudan
+     oraya düşer) pencere gösterme — "geç" demenin anlamı olmaz. */
+  const vs=_joinedVaults.filter(v=>v.id!==activeVault());
+  _joinedVaults=[];
+  if(!vs.length)return;
+  const btns=vs.map(v=>`<button class="btn primary" onclick="switchVault('${v.id}')">🔁 ${esc(v.name)} kasasına geç</button>`).join('');
+  sheet(`<h3>🤝 Kasa Davetiniz Kabul Edildi</h3>
+  <p class="mini" style="margin-top:0">${vs.length>1?vs.length+' kasaya':'<b>'+esc(vs[0].name)+'</b> kasasına'} eklendiniz. Verileri görmek için o kasaya geçmeniz gerekiyor.</p>
+  ${btns}
+  <p class="mini">Daha sonra <b>Ayarlar → Kasalar</b>'dan da geçebilirsiniz.</p>
+  <button class="btn ghost" onclick="closeSheet()">Şimdi değil</button>`);
 }
 async function openMembers(vid){
   const r=await sbFetch('brkt_members?vault_id=eq.'+vid+'&select=id,email,role,status,user_id&order=invited_at.asc');
@@ -2211,6 +2238,7 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
   S=load();renderAll();                    // kasa anahtarı değiştiği için yeniden yükle ve tekrar çiz
   await initialSync();
   await refreshVaults();
+  maybeShowJoinPrompt();                   // yeni katılınan kasa varsa "geç" penceresi
   if(getSession())rtConnect();
   autoFetchRatesIfStale();
   maybeNotifyHavl();
