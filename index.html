@@ -225,6 +225,10 @@ nav{
 .chip{display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green-dk);font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:20px}
 .chip b{font-weight:800;color:var(--ink)}
 .chip .ic{font-size:14px}
+.vaultbar{font:600 12px/1.2 Manrope,sans-serif;color:var(--ivory);opacity:.85;
+  margin-top:2px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.vaultbar .rolebadge{font-size:10px;padding:1px 6px;border-radius:8px;
+  background:rgba(250,247,240,.18)}
 details.kurbox{margin-top:8px}
 details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font-size:13.5px;padding:6px 0}
 </style>
@@ -237,6 +241,7 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <div style="flex:1">
       <h1>Bereket</h1>
       <small>Zekât · Varlık · Borç Takibi</small>
+      <div id="vaultbar" class="vaultbar" onclick="openVaults()" style="display:none"></div>
     </div>
     <button id="eyebtn" onclick="toggleHide()" aria-label="Tutarları gizle/göster" style="border:none;background:rgba(255,255,255,.12);color:#fff;font-size:19px;width:42px;height:42px;border-radius:13px;cursor:pointer">👁️</button>
   </div>
@@ -344,6 +349,10 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
   <div class="card">
     <h2>Bulut Yedekleme <span class="rule"></span></h2>
     <div id="a-cloud"></div>
+  </div>
+  <div class="card" id="a-vaults-card" style="display:none">
+    <h2>Kasalar <span class="rule"></span></h2>
+    <div id="a-vaults"></div>
   </div>
   <div class="card">
     <h2>Kurlar <span class="rule"></span></h2>
@@ -931,6 +940,7 @@ function renderAyar(){
     '<label>'+l+'</label><input type="number" step="0.01" inputmode="decimal" id="rate-'+k+'" value="'+(S.rates[k]||'')+'" placeholder="0,00">').join('');
   document.getElementById('a-ver').textContent='v'+APP_VERSION;
   renderCloud();
+  renderVaults();
 }
 
 /* ═══════════ VARLIK CRUD ═══════════ */
@@ -1473,6 +1483,233 @@ async function cloudLoad(){
     return await r.json();
   }catch(e){return null}
 }
+
+/* ═══════════ ÇOK KASALI KULLANIM (v1.19.0): kasa seçici, Kasalar kartı, üyelik ═══════════ */
+let _vaults=[];        // {id,name,owner_id,updated_at}
+let _members=[];       // aktif kasanın üyeleri (openMembers ile doldurulur)
+async function refreshVaults(){
+  const list=await listVaults();
+  if(list)_vaults=list;
+  if(_vaults.length&&!_vaults.find(x=>x.id===activeVault())&&activeVault()!=='local'){
+    // Kasadan çıkarıldıysak (silindi/atıldık) ilk kasaya düş
+    await switchVault(_vaults[0].id);
+    return;
+  }
+  await refreshRole();
+  renderVaultBar();renderAyar();
+}
+/* Rol bilgisi yalnızca SUNUCU GERÇEKTEN CEVAP VERİP söylediğinde değiştirilir.
+   Ağ hatasında (r===null ya da istisna) son bilinen rol korunur — aksi halde
+   çevrimdışıyken kullanıcı kendi yazdığı veriye "izleyici" moduna düşüp
+   kilitlenir, ki bu offline senaryoda YANLIŞ ve güvensiz bir kısıtlamadır
+   (veri kaybı değil ama gereksiz/aldatıcı bir kilitlenme olurdu). Sunucu
+   cevap verip üyelik bulunamadığını söylerse (r.ok değil) gerçekten
+   izleyiciye/erişimsize düşürülür — bu durumda kısıtlama doğrudur. */
+async function refreshRole(){
+  const v=activeVault();
+  if(v==='local'){_role='owner';document.body.classList.remove('ro');return}
+  try{
+    const s=await sbToken();
+    if(!s){document.body.classList.toggle('ro',_role==='viewer');return} // oturum yok: son bilinen rolü koru
+    const r=await sbFetch('brkt_members?vault_id=eq.'+v+'&user_id=eq.'+s.user.id+'&select=role',{headers:{Accept:'application/vnd.pgrst.object+json'}});
+    if(r&&r.ok){_role=(await r.json()).role}
+    else if(r&&!r.ok){_role='viewer'} // sunucu cevap verdi: üyelik yok/erişim yok -> gerçekten izleyici
+    // r===null: ağ hatası, sbFetch/sbToken başarısız oldu -> rolü DEĞİŞTİRME
+  }catch(e){/* ağ hatası: son bilinen rolü koru */}
+  document.body.classList.toggle('ro',_role==='viewer');
+}
+function renderVaultBar(){
+  const el=document.getElementById('vaultbar');
+  if(!el)return;
+  if(!getSession()||_vaults.length<2){el.style.display='none';setHeaderPad();return}
+  const v=_vaults.find(x=>x.id===activeVault());
+  const rn={owner:'Sahip',editor:'Düzenleyen',viewer:'İzleyici'}[_role]||'';
+  el.innerHTML='🔁 '+esc(v?v.name:'Kasa')+' <span class="rolebadge">'+rn+'</span>';
+  el.style.display='flex';
+  setHeaderPad();
+}
+async function switchVault(id){
+  closeSheet();
+  localStorage.setItem(VAULT_KEY,id);
+  S=load();
+  await refreshRole();
+  _syncReady=false;
+  await initialSync();
+  rtConnect();
+  scheduleHavlNotification();     // havl bildirimi yalnızca aktif kasa için
+  renderAll();renderVaultBar();
+  toast('Kasa değiştirildi');
+}
+function openVaults(){
+  const rows=_vaults.map(v=>{
+    const act=v.id===activeVault();
+    return `<button class="btn ${act?'primary':'ghost'}" onclick="switchVault('${v.id}')">${act?'✓ ':''}${esc(v.name)}</button>`;
+  }).join('');
+  sheet(`<h3>Kasalar</h3>
+  <p class="mini" style="margin-top:0">Verileriniz kasa başına ayrı tutulur. Bir kasayı paylaşmak için Ayarlar → Kasalar → Üyeler.</p>
+  ${rows||'<p class="mini">Kasa yok.</p>'}
+  <button class="btn gold" onclick="openNewVault()">➕ Yeni Kasa</button>
+  <button class="btn ghost" onclick="closeSheet()">Kapat</button>`);
+}
+function openNewVault(){
+  sheet(`<h3>Yeni Kasa</h3>
+  <label>Kasa adı</label><input id="f-vname" placeholder="Ortak Kasa" maxlength="40">
+  <button class="btn primary" onclick="saveNewVault()">Oluştur</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+async function saveNewVault(){
+  const n=(document.getElementById('f-vname').value||'').trim();
+  if(!n){toast('Kasa adı gerekli');return}
+  closeSheet();toast('Oluşturuluyor…');
+  const v=await createVault(n,defaults());
+  if(!v){toast('Kasa oluşturulamadı');return}
+  await refreshVaults();
+  await switchVault(v.id);
+}
+function renameVault(id){
+  const v=_vaults.find(x=>x.id===id);if(!v)return;
+  sheet(`<h3>Kasayı Yeniden Adlandır</h3>
+  <label>Kasa adı</label><input id="f-vrename" value="${esc(v.name)}" maxlength="40">
+  <button class="btn primary" onclick="saveRenameVault('${id}')">Kaydet</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+async function saveRenameVault(id){
+  const n=(document.getElementById('f-vrename').value||'').trim();
+  if(!n){toast('Kasa adı gerekli');return}
+  closeSheet();
+  const r=await sbFetch('brkt_vaults?id=eq.'+id,{method:'PATCH',body:JSON.stringify({name:n})});
+  if(r&&r.ok){await refreshVaults();toast('Yeniden adlandırıldı ✓')}else toast('Değiştirilemedi');
+}
+function renderVaults(){
+  const card=document.getElementById('a-vaults-card');
+  const el=document.getElementById('a-vaults');
+  if(!card||!el)return;
+  if(!getSession()){card.style.display='none';return}
+  card.style.display='';
+  const rn={owner:'Sahip',editor:'Düzenleyen',viewer:'İzleyici'};
+  const av=activeVault();
+  const rows=_vaults.map(v=>{
+    const act=v.id===av;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(30,86,49,.08)">
+      <div><b>${esc(v.name)}</b>${act?' <span class="mini">(aktif)</span>':''}
+        ${act?'<br><span class="mini">'+(rn[_role]||'')+'</span>':''}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        ${!act?`<button class="btn ghost" style="margin:0;padding:6px 10px" onclick="switchVault('${v.id}')">Geç</button>`:''}
+        ${act&&_role==='owner'?`
+          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="renameVault('${v.id}')" title="Yeniden adlandır">✏️</button>
+          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="openMembers('${v.id}')" title="Üyeler">👥</button>`:''}
+        ${act&&_role!=='owner'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="leaveVault('${v.id}')" title="Kasadan ayrıl">🚪</button>`:''}
+      </div></div>`;
+  }).join('');
+  el.innerHTML=(rows||'<p class="mini">Henüz kasanız yok.</p>')+
+    '<button class="btn gold" style="margin-top:8px" onclick="openNewVault()">➕ Yeni Kasa</button>';
+}
+
+/* ── Üyelik yönetimi (davet/rol/çıkarma/devir/kasa silme) ── */
+/* Davet edilen kişi kendi Google hesabıyla girdiği anda kasa listesinde belirir:
+   sunucudaki brkt_claim_invites() JWT e-postasıyla eşleşen davetleri bağlar. */
+async function claimInvites(){
+  try{
+    const r=await sbFetch('rpc/brkt_claim_invites',{method:'POST',body:'{}'});
+    if(r&&r.ok){const n=await r.json();if(n>0)toast(n+' kasa davetiniz kabul edildi ✓')}
+  }catch(e){}
+}
+async function openMembers(vid){
+  const r=await sbFetch('brkt_members?vault_id=eq.'+vid+'&select=id,email,role,status,user_id&order=invited_at.asc');
+  _members=(r&&r.ok)?await r.json():[];
+  const rn={owner:'Sahip',editor:'Düzenleyen',viewer:'İzleyici'};
+  const rows=_members.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(30,86,49,.08)">
+    <div><b>${esc(m.email)}</b><br><span class="mini">${rn[m.role]}${m.status==='pending'?' · davet bekliyor':''}</span></div>
+    <div style="display:flex;align-items:center;gap:4px">
+      ${m.role!=='owner'?`
+        <select onchange="setMemberRole('${vid}','${m.id}',this.value)">
+          <option value="editor"${m.role==='editor'?' selected':''}>Düzenleyen</option>
+          <option value="viewer"${m.role==='viewer'?' selected':''}>İzleyici</option>
+        </select>
+        ${m.status==='active'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="transferOwner('${vid}','${m.id}')" title="Sahipliği devret">👑</button>`:''}
+        <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="removeMember('${vid}','${m.id}')" title="Çıkar">✕</button>
+      `:''}
+    </div></div>`).join('');
+  sheet(`<h3>Üyeler</h3>
+  <p class="mini" style="margin-top:0">⚠️ Davet ettiğiniz kişi bu kasadaki <b>tüm finansal verinizi</b> görür.</p>
+  ${rows}
+  <button class="btn gold" onclick="openInvite('${vid}')">➕ Kişi Davet Et</button>
+  <button class="btn danger" onclick="deleteVault('${vid}')">🗑️ Kasayı Sil</button>
+  <button class="btn ghost" onclick="closeSheet()">Kapat</button>`);
+}
+function openInvite(vid){
+  sheet(`<h3>Kişi Davet Et</h3>
+  <p class="mini" style="margin-top:0">Davet edilen kişi <b>aynı e-posta ile Google girişi</b> yaptığında kasa otomatik olarak listesinde görünür.</p>
+  <label>Google e-posta adresi</label><input id="f-iemail" type="email" placeholder="ornek@gmail.com">
+  <label>Yetki</label>
+  <select id="f-irole">
+    <option value="editor">Düzenleyen — kayıt ekleyip değiştirebilir</option>
+    <option value="viewer">İzleyici — yalnızca görür</option>
+  </select>
+  <button class="btn primary" onclick="saveInvite('${vid}')">Davet Et</button>
+  <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
+}
+async function saveInvite(vid){
+  const em=(document.getElementById('f-iemail').value||'').trim().toLowerCase();
+  const role=document.getElementById('f-irole').value;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast('Geçerli bir e-posta girin');return}
+  const r=await sbFetch('brkt_members',{method:'POST',body:JSON.stringify({
+    vault_id:vid,email:em,role:role,status:'pending'})});
+  if(r&&r.ok){closeSheet();toast('Davet oluşturuldu ✓');openMembers(vid)}
+  else if(r&&r.status===409)toast('Bu kişi zaten davet edilmiş');
+  else toast('Davet oluşturulamadı');
+}
+async function setMemberRole(vid,mid,role){
+  const r=await sbFetch('brkt_members?id=eq.'+mid,{method:'PATCH',body:JSON.stringify({role:role})});
+  toast(r&&r.ok?'Yetki güncellendi ✓':'Yetki değiştirilemedi');
+  openMembers(vid);
+}
+function removeMember(vid,mid){
+  openConfirm('Bu kişi kasadan çıkarılsın mı? Verileri görmeye devam edemez.',async()=>{
+    const r=await sbFetch('brkt_members?id=eq.'+mid,{method:'DELETE'});
+    toast(r&&r.ok?'Çıkarıldı ✓':'Çıkarılamadı');
+    openMembers(vid);
+  },'Çıkar');
+}
+function leaveVault(vid){
+  openConfirm('Bu kasadan ayrılmak istiyor musunuz? Kasadaki veriler diğer üyelerde kalır, siz erişemezsiniz.',async()=>{
+    const s=await sbToken();if(!s)return;
+    const r=await sbFetch('brkt_members?vault_id=eq.'+vid+'&user_id=eq.'+s.user.id,{method:'DELETE'});
+    if(r&&r.ok){
+      localStorage.removeItem(dataKey(vid));
+      localStorage.setItem(VAULT_KEY,'local');
+      await refreshVaults();
+      if(_vaults.length)await switchVault(_vaults[0].id);else{S=load();renderAll()}
+      toast('Kasadan ayrıldınız');
+    }else toast('Ayrılınamadı');
+  },'Ayrıl');
+}
+function transferOwner(vid,mid){
+  const m=_members.find(x=>x.id===mid);if(!m)return;
+  openConfirm(esc(m.email)+' bu kasanın sahibi yapılsın mı? Siz "Düzenleyen" olacaksınız ve üyelik yönetimini kaybedeceksiniz.',async()=>{
+    const s=await sbToken();if(!s)return;
+    // SIRA ÖNEMLİ: önce kasa sahipliği, sonra yeni sahibin rolü, en son kendi rolüm.
+    // Ters sırada kendi yetkimizi düşürüp politikaya takılırdık.
+    const a=await sbFetch('brkt_vaults?id=eq.'+vid,{method:'PATCH',body:JSON.stringify({owner_id:m.user_id})});
+    const b=await sbFetch('brkt_members?id=eq.'+mid,{method:'PATCH',body:JSON.stringify({role:'owner'})});
+    const c=await sbFetch('brkt_members?vault_id=eq.'+vid+'&user_id=eq.'+s.user.id,{method:'PATCH',body:JSON.stringify({role:'editor'})});
+    if(a&&a.ok&&b&&b.ok&&c&&c.ok){closeSheet();await refreshVaults();toast('Sahiplik devredildi ✓')}
+    else toast('Devredilemedi');
+  },'Devret');
+}
+function deleteVault(vid){
+  openConfirm('Bu kasa ve içindeki TÜM veriler kalıcı olarak silinsin mi? Diğer üyeler de erişimini kaybeder. Bu işlem geri alınamaz.',async()=>{
+    const r=await sbFetch('brkt_vaults?id=eq.'+vid,{method:'DELETE'});
+    if(r&&r.ok){
+      localStorage.removeItem(dataKey(vid));
+      localStorage.setItem(VAULT_KEY,'local');
+      await refreshVaults();
+      if(_vaults.length)await switchVault(_vaults[0].id);else{S=load();renderAll()}
+      toast('Kasa silindi');
+    }else toast('Kasa silinemedi');
+  },'Sil');
+}
+
 let _syncReady=false; // açılıştaki bulut kararı (initialSync) verilmeden HİÇBİR otomatik push çalışmaz
 /* v1.19.0: kasa verisi artık kayıt bazlı BİRLEŞTİRİLİR, üzerine yazılmaz. */
 function applyCloud(row){
@@ -1927,10 +2164,11 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
 }
 (async()=>{
   await handleAuthRedirect();
-  // NOT: claimInvites() burada, migreToVault()'tan ÖNCE çağrılacak (davet kabulü — sonraki görev)
+  if(getSession())await claimInvites();
   await migrateToVault();
   S=load();renderAll();                    // kasa anahtarı değiştiği için yeniden yükle ve tekrar çiz
   await initialSync();
+  await refreshVaults();
   if(getSession())rtConnect();
   autoFetchRatesIfStale();
   maybeNotifyHavl();
