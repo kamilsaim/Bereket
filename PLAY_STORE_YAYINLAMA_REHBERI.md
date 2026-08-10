@@ -82,6 +82,17 @@ Play Console'da doldurulması istenen form — hangi veri kategorilerinin toplan
 
 Genel kural: "veri satılıyor mu" → hayır; "üçüncü taraf pazarlama" → hayır; "şifreli aktarım" → evet (HTTPS/Supabase).
 
+### 4.a. ⚠️ Bereket v1.19.0 — paylaşım beyanı ZORUNLU değişiklik
+
+v1.19.0 ile **paylaşılan kasa** özelliği geldi: kullanıcı davet ettiği kişilerle finansal verisini paylaşabiliyor. Bu, Data Safety formunda **beyan edilmesi zorunlu** bir davranıştır. Play Console → App content → Data safety:
+
+- **Financial info → Other financial info**: `Collected` **ve `Shared`** işaretlenmeli. Paylaşım, kullanıcının kendi daveti ile ve isteğe bağlı olarak olur — formda **optional** olarak belirtin.
+- **Personal info → Email address**: `Collected` (davet eşleştirmesi için davet edilen kişinin adresi saklanır). Amaç: **App functionality**.
+- Her ikisi için amaç **App functionality**; "veri satılıyor mu" hâlâ **hayır**.
+- Kullanıcı verisini silebiliyor mu → **evet** (uygulama içi hesap silme, bkz. bölüm 2).
+
+**Bunu işaretlemeden yayınlamak politika ihlalidir** ve uygulamanın mağazadan kaldırılmasına yol açabilir. Gizlilik politikasındaki "Paylaşılan Kasalar" bölümü bu beyanın karşılığıdır; ikisi tutarlı olmalı.
+
 ---
 
 ## 5. Mağaza Girişi (Store Listing)

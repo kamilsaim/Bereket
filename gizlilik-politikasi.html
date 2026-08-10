@@ -35,7 +35,7 @@
 <header>
   <div class="logo">🕌</div>
   <h1>Bereket — Gizlilik Politikası</h1>
-  <p>Son güncelleme: 24 Temmuz 2026</p>
+  <p>Son güncelleme: 10 Ağustos 2026</p>
 </header>
 <main>
   <p><b>Bereket</b>, zekât ve varlık takibi için geliştirilmiş kişisel bir mobil web uygulamasıdır. Bu politika, uygulamanın hangi verileri işlediğini ve bu verilerin nasıl silinebileceğini açıklar.</p>
@@ -45,7 +45,8 @@
   <p>Yalnızca <b>isteğe bağlı bulut yedekleme</b> özelliğini kullanmayı seçerseniz aşağıdaki veriler işlenir:</p>
   <ul>
     <li><b>Ad, e-posta adresi</b> — Google ile giriş yaptığınızda, hesabınızı tanımlamak için.</li>
-    <li><b>Uygulama verileriniz</b> (varlık/borç/zekât kayıtlarınız) — yalnızca sizin erişebileceğiniz şekilde bulutta yedeklenir.</li>
+    <li><b>Uygulama verileriniz</b> (varlık/borç/zekât kayıtlarınız) — bulutta yedeklenir. Bir kasayı başkasıyla paylaşmadığınız sürece yalnızca siz erişebilirsiniz (bkz. <a href="#paylasilan-kasalar">Paylaşılan Kasalar</a>).</li>
+    <li><b>Davet ettiğiniz kişilerin e-posta adresleri</b> — yalnızca bir kasayı paylaşmayı seçerseniz; daveti doğru kişiyle eşleştirmek için saklanır.</li>
   </ul>
   <p>Konum, kamera, kişiler veya reklam kimliği gibi hiçbir hassas veri toplanmaz.</p>
 
@@ -55,16 +56,27 @@
     <li>Veriler <b>satılmaz</b>, üçüncü taraf pazarlamasında <b>kullanılmaz</b>.</li>
   </ul>
 
+  <h2 id="paylasilan-kasalar">Paylaşılan Kasalar</h2>
+  <p>Bereket, verilerinizi seçtiğiniz kişilerle paylaşmanıza olanak tanır (&ldquo;kasa&rdquo; paylaşımı). Bu tamamen <b>isteğe bağlıdır</b> ve yalnızca siz açıkça davet ettiğinizde gerçekleşir.</p>
+  <ul>
+    <li>Davet ettiğiniz kişi, o kasadaki <b>tüm finansal verilerinizi</b> (varlıklar, borçlar, alacaklar, emanetler, zekât kayıtları) görür. <b>Düzenleyen</b> yetkisi verdiyseniz bu verileri değiştirebilir ve silebilir; <b>İzleyici</b> yetkisi verdiyseniz yalnızca görür.</li>
+    <li>Davet edebilmek için girdiğiniz <b>e-posta adresi sunucuda saklanır</b> ve davet edilen kişi bu adresle giriş yaptığında eşleştirilir.</li>
+    <li>Bir kasadan ayrılmanız veya hesabınızı silmeniz, o kasadaki verilerin <b>diğer üyelerde kalmasını engellemez</b>. Paylaşılmış veriyi geri almanın bir yolu yoktur.</li>
+    <li>Hesabınızı silerseniz, sahibi olduğunuz ve başka üyesi bulunan kasalar <b>en eski üyeye devredilir</b>; başka üyesi olmayan kasalar verileriyle birlikte silinir.</li>
+  </ul>
+  <p>Kasa paylaşımını hiç kullanmazsanız verileriniz yalnızca sizin hesabınızda kalır.</p>
+
   <h2>Üçüncü Taraflar</h2>
   <ul>
     <li><b>Google</b> — yalnızca giriş (OAuth) için; ad ve e-posta bilgisi alınır.</li>
-    <li><b>Supabase</b> — bulut yedeğinizin saklandığı altyapı. Veriler HTTPS ile şifreli aktarılır ve satır bazlı güvenlik (RLS) ile yalnızca size özeldir.</li>
+    <li><b>Supabase</b> — bulut yedeğinizin saklandığı altyapı. Veriler HTTPS ile şifreli aktarılır ve satır bazlı güvenlik (RLS) ile yalnızca size &mdash; bir kasayı paylaştıysanız yalnızca size ve davet ettiğiniz kişilere &mdash; açıktır.</li>
     <li><b>finans.truncgil.com</b> — güncel altın/döviz kurlarını çekmek için (kişisel veri gönderilmez).</li>
   </ul>
 
   <h2>Hesabınızı ve Verilerinizi Silme</h2>
   <div class="box warn">
     <p style="margin-top:0"><b>Uygulama içinden:</b> Ayarlar → Bulut Yedekleme → <b>“Hesabımı Kalıcı Olarak Sil”</b> düğmesiyle buluttaki Bereket verilerinizi kalıcı olarak silebilirsiniz. Bu Google hesabıyla başka bir uygulamada veriniz kalmadıysa hesabınız da tamamen silinir. Bu işlem geri alınamaz.</p>
+    <p><b>Paylaşılan kasalar:</b> Yalnızca üyesi olduğunuz kasalardan üyeliğiniz kaldırılır, kasa ve verisi diğer üyelerde kalır. Sahibi olduğunuz kasalardan başka üyesi bulunanlar en eski üyeye devredilir; başka üyesi olmayanlar verileriyle birlikte silinir.</p>
     <p style="margin-bottom:0"><b>Uygulamasız / web üzerinden talep:</b> Uygulamaya erişiminiz yoksa, hesabınızın ve verilerinizin silinmesini talep etmek için aşağıdaki adrese e-posta gönderebilirsiniz. Talebiniz en geç 30 gün içinde yerine getirilir.</p>
   </div>
   <div class="box">
