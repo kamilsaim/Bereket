@@ -450,9 +450,11 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.20.0';
+const APP_VERSION='1.20.1';
 const CHANGELOG=[
+ {v:'1.20.1',d:'10.08.2026',n:'Üyelik bekçisi: kasa daveti ve kasadan çıkarılma artık 20 saniye içinde algılanır (Realtime yalnızca kasa verisini taşıyor, üyelik değişiklikleri yoklamayla anlaşılıyor); uygulama öne gelince de hemen kontrol edilir'},
  {v:'1.20.0',d:'10.08.2026',n:'Hareket geçmişi: paylaşılan kasada kimin ne eklediği/sildiği/güncellediği kaydedilir; karşı taraftan gelen değişiklikte bildirim (toast) gösterilir; Ayarlar → Hareketler kartından geçmiş görüntülenir'},
+ {v:'1.19.3',d:'10.08.2026',n:'Oturumsuz kullanıp sonradan giriş yapanlara "verilerinizi buluta taşıyalım mı?" teklifi (bu kişiler daha önce hiç bulut kasası edinemiyor, yedeksiz kalıyorlardı)'},
  {v:'1.19.2',d:'10.08.2026',n:'Kasadan çıkarılan kişinin cihazındaki kasa kopyası ve o kasaya ait günlük yedekler otomatik silinir (erişimi kesilen kişi son anlık görüntüyü görmeye devam edemez)'},
  {v:'1.19.1',d:'10.08.2026',n:'Kasa daveti kabul edilince "kasaya geç" penceresi gösterilir (davetli paylaşılan kasayı bulamıyordu); kasa oluşturmayı engelleyen RLS politikası düzeltildi; kasa oluşturma hataları artık ayrıntılı bildiriliyor'},
  {v:'1.19.0',d:'10.08.2026',n:'Paylaşılan kasalar: verilerinizi eşinizle veya ortağınızla paylaşın (Düzenleyen/İzleyici yetkileri, e-posta ile davet), birden çok kasa arasında geçiş, değişikliklerin karşı tarafta anında görünmesi (Realtime), kayıt bazlı birleştirme ile çift taraflı düzenlemede veri kaybının önlenmesi'},
@@ -1625,7 +1627,7 @@ let _vaults=[];        // {id,name,owner_id,updated_at}
 let _members=[];       // aktif kasanın üyeleri (openMembers ile doldurulur)
 async function refreshVaults(){
   const list=await listVaults();
-  if(list)_vaults=list;
+  if(list){_vaults=list;rememberVaultIds(list.map(v=>v.id))}
   /* Sunucu listeyi verdi (list!==null) ve aktif kasa listede yoksa: kasadan
      çıkarıldık veya kasa silindi. Yerel kopyayı da temizle — yoksa kişi
      cihazındaki son anlık görüntüyü görmeye devam ederdi. */
@@ -1750,19 +1752,25 @@ function renderVaults(){
 /* ── Üyelik yönetimi (davet/rol/çıkarma/devir/kasa silme) ── */
 /* Davet edilen kişi kendi Google hesabıyla girdiği anda kasa listesinde belirir:
    sunucudaki brkt_claim_invites() JWT e-postasıyla eşleşen davetleri bağlar. */
-let _joinedVaults=[];   // bu açılışta yeni katılınan kasalar (geçiş penceresi için)
+let _joinedVaults=[];   // yeni katılınan kasalar (geçiş penceresi için)
+/* Bilinen kasa id'leri kalıcı tutulur: "yeni katıldım" kararını her seferinde
+   iki listVaults isteğiyle vermek yerine (20 sn'de bir çalışan bekçi için fazla
+   maliyetli) bu kümeyle karşılaştırıyoruz; sayfa yenilense de doğru kalır. */
+const KNOWN_VAULTS_KEY='bereket_known_vaults';
+function knownVaultIds(){try{return JSON.parse(localStorage.getItem(KNOWN_VAULTS_KEY))||[]}catch(e){return []}}
+function rememberVaultIds(ids){try{localStorage.setItem(KNOWN_VAULTS_KEY,JSON.stringify(ids))}catch(e){}}
 async function claimInvites(){
   try{
-    /* Hangi kasaya yeni katıldığımızı bilmek için önce/sonra farkı alınır:
-       brkt_claim_invites() yalnızca sayı döndürüyor. */
-    const before=await listVaults();
-    const beforeIds={};(before||[]).forEach(v=>{beforeIds[v.id]=1});
     const r=await sbFetch('rpc/brkt_claim_invites',{method:'POST',body:'{}'});
     if(!(r&&r.ok))return;
     const n=await r.json();
     if(!n||n<=0)return;
+    /* Yalnızca gerçekten davet bağlandıysa listeyi çek: normal turda tek RPC. */
     const after=await listVaults();
-    _joinedVaults=(after||[]).filter(v=>!beforeIds[v.id]);
+    if(!after)return;
+    const known=knownVaultIds();
+    _joinedVaults=after.filter(v=>known.indexOf(v.id)<0);
+    rememberVaultIds(after.map(v=>v.id));
   }catch(e){}
 }
 /* Davet kabul edildiğinde kullanıcı kendi kasasında kalıyor ve paylaşılan
@@ -2043,9 +2051,37 @@ function setPoll(){
   _pollTimer=setInterval(autoCloudSync,_rtOpen?60000:5000);
 }
 setPoll();
+/* ÜYELİK BEKÇİSİ (v1.20.1)
+   Realtime yalnızca brkt_vaults satırındaki UPDATE'leri taşır; üyelik
+   değişiklikleri (davet edilme / kasadan çıkarılma) brkt_members tablosunda
+   olur ve oradan olay gelmez. Dahası çıkarıldıktan sonra RLS yüzünden hiçbir
+   Realtime olayı ulaşmaz — yani bu iki durum SADECE yoklamayla anlaşılabilir.
+   Veri yoklaması Realtime bağlıyken 60 sn'ye düştüğü için üyelik değişikliği
+   dakikalar sonra fark ediliyordu; bu bekçi 20 sn'de bir bunu ayrıca kontrol
+   eder (istekler küçüktür: bir RPC + gerekirse tek satırlık rol sorgusu). */
+async function membershipWatch(){
+  if(document.hidden||!_syncReady||!getSession())return;
+  try{
+    await claimInvites();
+    if(_joinedVaults.length){
+      await refreshVaults();
+      maybeShowJoinPrompt();
+      return;
+    }
+    if(activeVault()==='local')return;
+    /* Erişim hâlâ var mı? refreshRole sunucu 401/403/404/406 dediğinde rolü
+       düşürür; 406/404 "üyelik satırı yok" demektir → erişim kaybı yolu. */
+    const before=_role;
+    await refreshRole();
+    if(_role!=='viewer'&&_role!==before)renderAll();
+    await cloudLoad();   // 406 gelirse vaultAccessLost zincirini tetikler
+  }catch(e){}
+}
+let _memberTimer=setInterval(membershipWatch,20000);
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){
     autoCloudSync();
+    membershipWatch();          // öne gelince davet/çıkarılma durumunu hemen kontrol et
     if(getSession()&&(!_rt||_rt.readyState>1))rtConnect();
   }
 });
