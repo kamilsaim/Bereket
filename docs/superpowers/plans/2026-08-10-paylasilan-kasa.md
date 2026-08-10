@@ -125,7 +125,7 @@ test('stampAll damgasi olmayan tum kayitlara verilen damgayi basar, mevcut olani
 
 - [ ] **Step 3: Testi çalıştır, başarısız olduğunu gör**
 
-Run: `node --test tests/`
+Run: `node --test "tests/*.test.mjs"`
 Expected: FAIL — `sync-core işaretleri index.html icinde bulunamadi`
 
 - [ ] **Step 4: sync-core bloğunu ekle**
@@ -161,7 +161,7 @@ function stampAll(d,iso){
 
 - [ ] **Step 5: Testi çalıştır, geçtiğini gör**
 
-Run: `node --test tests/`
+Run: `node --test "tests/*.test.mjs"`
 Expected: PASS — 4 test geçer. (`mergeList`/`mergeData`/`gcTombstones` henüz tanımsız; `extract.mjs` bunları `return` listesinde arıyor, bu yüzden **bu adımda hata alırsanız** `extract.mjs`'deki `names` listesinden o üçünü geçici olarak çıkarın — Task 2'de geri eklenecek. Not: hepsi Task 2'de tanımlanacağı için tercih edilen yol, Task 1 ve 2'yi tek oturumda yapıp listeyi hiç değiştirmemektir.)
 
 - [ ] **Step 6: Commit**
@@ -288,7 +288,7 @@ test('gcTombstones 90 gunden eski mezar taslarini atar, yenileri kalir', () => {
 
 - [ ] **Step 2: Testleri çalıştır, başarısız olduklarını gör**
 
-Run: `node --test tests/`
+Run: `node --test "tests/*.test.mjs"`
 Expected: FAIL — `mergeList is not defined` (veya `extract.mjs`'de isim bulunamadı hatası)
 
 - [ ] **Step 3: Fonksiyonları sync-core bloğuna ekle**
@@ -352,7 +352,7 @@ function gcTombstones(d,refISO){
 
 - [ ] **Step 4: Testleri çalıştır, geçtiklerini gör**
 
-Run: `node --test tests/`
+Run: `node --test "tests/*.test.mjs"`
 Expected: PASS — 16 test geçer, 0 başarısız
 
 - [ ] **Step 5: Commit**
@@ -1843,7 +1843,7 @@ Sürüm rozetini/satırını v1.19.0 yapın.
 
 "Kurallar" bölümüne 6. madde:
 ```markdown
-6. Birleştirme çekirdeğini (`BEREKET-SYNC-CORE` bloğu) değiştirirken `node --test tests/`
+6. Birleştirme çekirdeğini (`BEREKET-SYNC-CORE` bloğu) değiştirirken `node --test "tests/*.test.mjs"`
    koşulmalıdır; bu blok DOM/S/localStorage'a dokunmayan **saf** fonksiyonlardan oluşur.
 ```
 
@@ -1851,7 +1851,7 @@ Sürüm rozetini/satırını v1.19.0 yapın.
 
 - [ ] **Step 5: Tam regresyon geçişi**
 
-Run: `node --test tests/`
+Run: `node --test "tests/*.test.mjs"`
 Expected: tüm testler PASS
 
 Run: `python -m http.server 8000`, tarayıcıda spec §13 doğrulama listesinin 9 maddesini sırayla geçin:
