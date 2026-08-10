@@ -123,6 +123,63 @@ test('mergeData history gunlerini birlestirir, cakisan gunde yeni blob kazanir',
   assert.equal(out.history[0].v, 10);
 });
 
+test('stamp setMe cagrilinca by alanini basar, bos iken basmaz', () => {
+  C.setMe('kamil@ornek.com');
+  const r = C.stamp({ id: 'a1' });
+  assert.equal(r.by, 'kamil@ornek.com');
+  C.setMe('');
+  const r2 = C.stamp({ id: 'a2' });
+  assert.equal(r2.by, undefined);
+});
+
+test('logEntry gerekli alanlari uretir', () => {
+  C.setMe('ayse@ornek.com');
+  const e = C.logEntry('ekledi', 'varlık', '10 gr altın');
+  assert.equal(e.act, 'ekledi');
+  assert.equal(e.kind, 'varlık');
+  assert.equal(e.label, '10 gr altın');
+  assert.equal(e.by, 'ayse@ornek.com');
+  assert.match(e.at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.ok(e.id);
+  C.setMe('');
+});
+
+test('mergeData log dizisini id ile birlestirir', () => {
+  const out = C.mergeData(
+    { log: [{ id: 'l1', at: iso(1) }], mod: iso(2) },
+    { log: [{ id: 'l2', at: iso(2) }], mod: iso(1) }
+  );
+  assert.deepEqual(out.log.map(e => e.id).sort(), ['l1', 'l2']);
+});
+
+test('mergeData ayni log kaydini tekrarlamaz', () => {
+  const out = C.mergeData(
+    { log: [{ id: 'l1', at: iso(1) }], mod: iso(2) },
+    { log: [{ id: 'l1', at: iso(1) }], mod: iso(1) }
+  );
+  assert.equal(out.log.length, 1);
+});
+
+test('mergeData log LOG_MAX ile sinirlar, en yenileri tutar', () => {
+  const local = { log: [], mod: iso(9) };
+  const remote = { log: [], mod: iso(1) };
+  const base = Date.parse('2026-05-01T00:00:00.000Z');
+  for (let i = 0; i < 150; i++) {
+    local.log.push({ id: 'x' + i, at: new Date(base + i * 1000).toISOString() });
+  }
+  const out = C.mergeData(local, remote);
+  assert.equal(out.log.length, C.LOG_MAX);
+  assert.equal(out.log[0].id, 'x30');
+  assert.equal(out.log[out.log.length - 1].id, 'x149');
+});
+
+test('mergeData log eksik olan tarafta hata vermez', () => {
+  const out1 = C.mergeData({ mod: iso(1) }, { log: [{ id: 'l1', at: iso(1) }], mod: iso(2) });
+  assert.deepEqual(out1.log.map(e => e.id), ['l1']);
+  const out2 = C.mergeData({ log: [{ id: 'l1', at: iso(1) }], mod: iso(1) }, { mod: iso(2) });
+  assert.deepEqual(out2.log.map(e => e.id), ['l1']);
+});
+
 test('gcTombstones 90 gunden eski mezar taslarini atar, yenileri kalir', () => {
   const d = {
     assets: [

@@ -73,6 +73,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Form doldururken karşı taraftan değişiklik gelirse ekranınız altınızdan yenilenmez, pencereyi kapatınca uygulanır
 - Sahiplik devredilebilir; kasadan ayrılabilir, sahibi kasayı silebilir. Hesabınızı silerseniz başka üyesi olan kasalar en eski üyeye devrolur
 - ⚠️ Paylaştığınız kişi o kasadaki **tüm finansal verinizi** görür; paylaşılmış veri geri alınamaz (bkz. [gizlilik politikası](gizlilik-politikasi.html))
+- **Hareket geçmişi** (v1.20.0) — kasadaki her ekleme/silme/güncelleme kimin yaptığı ve ne zaman yapıldığıyla kaydedilir; karşı taraf bir değişiklik yaptığında bildirim (toast) gösterilir, Ayarlar → Hareketler kartından geçmiş görüntülenebilir
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir

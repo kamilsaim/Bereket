@@ -371,6 +371,10 @@ details.kurbox summary{cursor:pointer;font-weight:700;color:var(--green-dk);font
     <h2>Kasalar <span class="rule"></span></h2>
     <div id="a-vaults"></div>
   </div>
+  <div class="card" id="a-log-card" style="display:none">
+    <h2>Hareketler <span class="rule"></span></h2>
+    <div id="a-log"></div>
+  </div>
   <div class="card">
     <h2>Kurlar <span class="rule"></span></h2>
     <p class="mini" style="margin-top:0">Birim fiyatları TL cinsinden girin veya internetten çekin.</p>
@@ -446,8 +450,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.19.2';
+const APP_VERSION='1.20.0';
 const CHANGELOG=[
+ {v:'1.20.0',d:'10.08.2026',n:'Hareket geçmişi: paylaşılan kasada kimin ne eklediği/sildiği/güncellediği kaydedilir; karşı taraftan gelen değişiklikte bildirim (toast) gösterilir; Ayarlar → Hareketler kartından geçmiş görüntülenir'},
  {v:'1.19.2',d:'10.08.2026',n:'Kasadan çıkarılan kişinin cihazındaki kasa kopyası ve o kasaya ait günlük yedekler otomatik silinir (erişimi kesilen kişi son anlık görüntüyü görmeye devam edemez)'},
  {v:'1.19.1',d:'10.08.2026',n:'Kasa daveti kabul edilince "kasaya geç" penceresi gösterilir (davetli paylaşılan kasayı bulamıyordu); kasa oluşturmayı engelleyen RLS politikası düzeltildi; kasa oluşturma hataları artık ayrıntılı bildiriliyor'},
  {v:'1.19.0',d:'10.08.2026',n:'Paylaşılan kasalar: verilerinizi eşinizle veya ortağınızla paylaşın (Düzenleyen/İzleyici yetkileri, e-posta ile davet), birden çok kasa arasında geçiş, değişikliklerin karşı tarafta anında görünmesi (Realtime), kayıt bazlı birleştirme ile çift taraflı düzenlemede veri kaybının önlenmesi'},
@@ -502,9 +507,16 @@ const DIST_COLORS={gold:'#C9A227',gumus:'#9aa5ad',usd:'#3d7a52',eur:'#1E5631',tl
 const SYNC_COLLECTIONS=['assets','debts','trusts','zakat'];
 const TOMB_DAYS=90;            // mezar taşı ömrü
 let _skewMs=0;                 // sunucu-cihaz saat farkı düzeltmesi
+let _me='';                     // hareketi yapan (e-posta) — attribution için
+const LOG_MAX=120;              // saklanan hareket sayısı
 function setSkew(ms){_skewMs=Number(ms)||0}
+function setMe(x){_me=String(x||'')}
+function whoAmI(){return _me}
 function nowISO(){return new Date(Date.now()+_skewMs).toISOString()}
-function stamp(o){o.mod=nowISO();return o}
+function stamp(o){o.mod=nowISO();if(_me)o.by=_me;return o}
+function logEntry(act,kind,label){
+  return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),at:nowISO(),by:_me||'',act:act,kind:kind,label:String(label||'')};
+}
 function alive(r){return !!r&&!r.del}
 function isNewer(a,b){return String((a&&a.mod)||'')>String((b&&b.mod)||'')}
 function stampAll(d,iso){
@@ -560,6 +572,11 @@ function mergeData(local,remote){
   out.havlMod=hsrc.havlMod||null;
   out.mod=fresh.mod||null;
   // hide BİLİNÇLİ olarak taşınmaz: cihaz ayarıdır, localStorage'da tutulur
+  // log: ekle-sil-yok, sadece birleşim (union) — id'ye göre, artan at, son LOG_MAX
+  const lm=new Map();
+  (local.log||[]).forEach(e=>{if(e&&e.id)lm.set(e.id,e)});
+  (remote.log||[]).forEach(e=>{if(e&&e.id)lm.set(e.id,e)});
+  out.log=Array.from(lm.values()).sort((a,b)=>String(a.at)<String(b.at)?-1:1).slice(-LOG_MAX);
   return out;
 }
 function gcTombstones(d,refISO){
@@ -581,7 +598,7 @@ const LIVE={
   zakat:()=>(S.zakat||[]).filter(alive),
   payments:d=>((d&&d.payments)||[]).filter(alive)
 };
-function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,havlMod:null,history:[]}}
+function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,havlMod:null,history:[],log:[]}}
 function load(){
   try{const d=JSON.parse(localStorage.getItem(dataKey()));if(d){const base=defaults();return Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})})}}catch(e){}
   return defaults();
@@ -591,6 +608,12 @@ function canEdit(){return _role!=='viewer'}
 function save(){
   if(!canEdit()){toast('İzleyici modundasınız, değişiklik yapamazsınız');return}
   snapshot();dailyBackup();S.mod=nowISO();localStorage.setItem(dataKey(),JSON.stringify(S));queueCloudSync();
+}
+/* Hareket geçmişi (v1.20.0): kim ne yaptı — save() öncesi çağrılmalı ki kalıcı olsun. */
+function logAct(act,kind,label){
+  if(!S.log)S.log=[];
+  S.log.push(logEntry(act,kind,label));
+  if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX);
 }
 /* Veri kaybına karşı emniyet ağı: her günün İLK değişikliğinden önceki durum saklanır (son 7 gün) */
 function isEmptyData(d){
@@ -858,7 +881,7 @@ function openHavl(){
 function saveHavl(){
   const v=document.getElementById('f-havl').value;
   if(!v)return toast('Tarih seçin');
-  S.havl=v;S.havlMod=nowISO();save();closeSheet();renderAll();toast('Kamerî yıl takibi kaydedildi ✓');
+  S.havl=v;S.havlMod=nowISO();logAct('güncelledi','havl',trDate(v));save();closeSheet();renderAll();toast('Kamerî yıl takibi kaydedildi ✓');
   scheduleHavlNotification();
 }
 
@@ -969,6 +992,25 @@ function renderAyar(){
   document.getElementById('a-ver').textContent='v'+APP_VERSION;
   renderCloud();
   renderVaults();
+  renderLog();
+}
+/* ═══════════ HAREKET GEÇMİŞİ (v1.20.0) ═══════════ */
+function logRow(e){
+  const who=e.by?(e.by===whoAmI()?'Siz':esc(e.by.split('@')[0])):'Siz';
+  return '<div class="item"><div class="tx"><b>'+who+'</b> '+esc(e.act)+' — '+esc(e.kind)+(e.label?' <span class="mini">('+esc(e.label)+')</span>':'')+
+    '<div class="mini">'+relTime(e.at)+'</div></div></div>';
+}
+function renderLog(){
+  const card=document.getElementById('a-log-card'),el=document.getElementById('a-log');
+  const list=(S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  if(!list.length){card.style.display='none';return}
+  card.style.display='';
+  el.innerHTML=list.slice(0,12).map(logRow).join('')+
+    '<button class="btn ghost" onclick="openAllLog()">Tümünü gör</button>';
+}
+function openAllLog(){
+  const list=(S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  sheet('<h3>Tüm Hareketler</h3>'+list.map(logRow).join(''));
 }
 
 /* ═══════════ VARLIK CRUD ═══════════ */
@@ -987,13 +1029,15 @@ function saveAsset(id){
   const date=document.getElementById('f-date').value||null;
   const note=document.getElementById('f-note').value.trim();
   if(!qty||qty<=0)return toast('Geçerli bir miktar girin');
-  if(id){const a=S.assets.find(x=>x.id===id);Object.assign(a,{type,qty,date,note});stamp(a)}
-  else S.assets.push(stamp({id:uid(),type,qty,date,note}));
+  const alabel=fmt2(qty)+' '+(ASSET_TYPES[type]?ASSET_TYPES[type].unit:'')+' '+(ASSET_TYPES[type]?ASSET_TYPES[type].name:type);
+  if(id){const a=S.assets.find(x=>x.id===id);Object.assign(a,{type,qty,date,note});stamp(a);logAct('güncelledi','varlık',alabel)}
+  else{S.assets.push(stamp({id:uid(),type,qty,date,note}));logAct('ekledi','varlık',alabel)}
   save();closeSheet();renderAll();toast('Varlık kaydedildi ✓');
   if(!S.rates[type]&&type!=='tl'&&type!=='diger')toast('Bu varlık için kur girmeyi unutmayın');
 }
 function delAsset(id){openConfirm('Bu varlık silinsin mi?',()=>{
-  const a=S.assets.find(x=>x.id===id);if(a){a.del=true;stamp(a)}
+  const a=S.assets.find(x=>x.id===id);
+  if(a){const alabel=fmt2(a.qty)+' '+(ASSET_TYPES[a.type]?ASSET_TYPES[a.type].unit:'')+' '+(ASSET_TYPES[a.type]?ASSET_TYPES[a.type].name:a.type);a.del=true;stamp(a);logAct('sildi','varlık',alabel)}
   save();renderAll();
 })}
 
@@ -1097,8 +1141,9 @@ function saveDebt(id){
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
   const wants=!id&&xferWanted();
-  if(id){const d=S.debts.find(x=>x.id===id);Object.assign(d,{dir,who,amount,cur,due});d.done=debtRemaining(d)<=0;stamp(d);}
-  else S.debts.push(stamp({id:uid(),dir,who,amount,cur,due,done:false,payments:[]}));
+  const dlabel=who+' · '+fmt2(amount)+' '+(CUR_UNITS[cur]||cur);
+  if(id){const d=S.debts.find(x=>x.id===id);Object.assign(d,{dir,who,amount,cur,due});d.done=debtRemaining(d)<=0;stamp(d);logAct('güncelledi',dir==='alacak'?'alacak':'borç',dlabel);}
+  else{S.debts.push(stamp({id:uid(),dir,who,amount,cur,due,done:false,payments:[]}));logAct('ekledi',dir==='alacak'?'alacak':'borç',dlabel);}
   save();renderAll();
   /* Yeni alacak → varlıktan düş (parayı verdin), yeni borç → varlığa ekle (parayı aldın) */
   if(wants&&ASSET_TYPES[cur]){
@@ -1111,7 +1156,9 @@ function saveDebt(id){
 function toggleDebt(id){
   const d=S.debts.find(x=>x.id===id);
   const closing=!d.done,rem=debtRemaining(d);
-  d.done=!d.done;stamp(d);save();renderAll();
+  d.done=!d.done;stamp(d);
+  logAct(d.done?'kapattı':'açtı',d.dir==='alacak'?'alacak':'borç',d.who+' · '+fmt2(d.amount)+' '+(CUR_UNITS[d.cur]||d.cur));
+  save();renderAll();
   if(closing&&rem>0&&ASSET_TYPES[d.cur])return askDebtXfer(d.id,rem);
   toast(d.done?'Kapatıldı ✓':'Yeniden açıldı');
 }
@@ -1131,7 +1178,8 @@ function runDebtXfer(id,rem){
     onDone:m=>toast('Kapatıldı ✓'+m)});
 }
 function delDebt(id){openConfirm('Bu kayıt silinsin mi?',()=>{
-  const d=S.debts.find(x=>x.id===id);if(d){d.del=true;stamp(d)}
+  const d=S.debts.find(x=>x.id===id);
+  if(d){const dlabel=d.who+' · '+fmt2(d.amount)+' '+(CUR_UNITS[d.cur]||d.cur);d.del=true;stamp(d);logAct('sildi',d.dir==='alacak'?'alacak':'borç',dlabel)}
   save();renderAll();
 })}
 
@@ -1174,6 +1222,7 @@ function savePayment(id){
   d.payments.push(np);
   if(debtRemaining(d)<=0)d.done=true;
   stamp(d);
+  logAct('ekledi','ödeme',d.who+' · '+fmt2(amount)+' '+(CUR_UNITS[d.cur]||d.cur));
   save();renderAll();
   /* Alacak tahsilatı → varlığa ekle, borç ödemesi → varlıktan düş */
   if(wants&&ASSET_TYPES[d.cur]){
@@ -1187,7 +1236,7 @@ function delPayment(debtId,paymentId){
   openConfirm('Bu ödeme kaydı silinsin mi?',()=>{
   const d=S.debts.find(x=>x.id===debtId);if(!d)return;
   const p=(d.payments||[]).find(x=>x.id===paymentId);
-  if(p){p.del=true;stamp(p)}
+  if(p){p.del=true;stamp(p);logAct('sildi','ödeme',d.who+' · '+fmt2(p.amount)+' '+(CUR_UNITS[d.cur]||d.cur))}
   stamp(d);
   d.done=debtRemaining(d)<=0;
   save();renderAll();openDebtCard(debtId);
@@ -1225,13 +1274,19 @@ function saveTrust(id){
   const note=document.getElementById('f-note').value.trim();
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
-  if(id){const t=S.trusts.find(x=>x.id===id);Object.assign(t,{dir,who,amount,cur,date,note});t.done=debtRemaining(t)<=0;stamp(t);}
-  else S.trusts.push(stamp({id:uid(),dir,who,amount,cur,date,note,done:false,payments:[]}));
+  const tlabel=who+' · '+fmt2(amount)+' '+(CUR_UNITS[cur]||cur);
+  if(id){const t=S.trusts.find(x=>x.id===id);Object.assign(t,{dir,who,amount,cur,date,note});t.done=debtRemaining(t)<=0;stamp(t);logAct('güncelledi','emanet',tlabel);}
+  else{S.trusts.push(stamp({id:uid(),dir,who,amount,cur,date,note,done:false,payments:[]}));logAct('ekledi','emanet',tlabel);}
   save();closeSheet();renderAll();toast(id?'Kayıt güncellendi ✓':'Kayıt eklendi ✓');
 }
-function toggleTrust(id){const t=S.trusts.find(x=>x.id===id);t.done=!t.done;stamp(t);save();renderAll();toast(t.done?'İade edildi ✓':'Yeniden açıldı')}
+function toggleTrust(id){
+  const t=S.trusts.find(x=>x.id===id);t.done=!t.done;stamp(t);
+  logAct(t.done?'kapattı':'açtı','emanet',t.who+' · '+fmt2(t.amount)+' '+(CUR_UNITS[t.cur]||t.cur));
+  save();renderAll();toast(t.done?'İade edildi ✓':'Yeniden açıldı')
+}
 function delTrust(id){openConfirm('Bu emanet kaydı silinsin mi?',()=>{
-  const t=S.trusts.find(x=>x.id===id);if(t){t.del=true;stamp(t)}
+  const t=S.trusts.find(x=>x.id===id);
+  if(t){const tlabel=t.who+' · '+fmt2(t.amount)+' '+(CUR_UNITS[t.cur]||t.cur);t.del=true;stamp(t);logAct('sildi','emanet',tlabel)}
   save();renderAll();
 })}
 
@@ -1271,13 +1326,14 @@ function saveTrustPayment(id){
   t.payments.push(np);
   if(debtRemaining(t)<=0)t.done=true;
   stamp(t);
+  logAct('ekledi','emanet ödemesi',t.who+' · '+fmt2(amount)+' '+(CUR_UNITS[t.cur]||t.cur));
   save();renderAll();openTrustCard(id);toast('İade kaydedildi ✓');
 }
 function delTrustPayment(trustId,paymentId){
   openConfirm('Bu iade kaydı silinsin mi?',()=>{
   const t=S.trusts.find(x=>x.id===trustId);if(!t)return;
   const p=(t.payments||[]).find(x=>x.id===paymentId);
-  if(p){p.del=true;stamp(p)}
+  if(p){p.del=true;stamp(p);logAct('sildi','emanet ödemesi',t.who+' · '+fmt2(p.amount)+' '+(CUR_UNITS[t.cur]||t.cur))}
   stamp(t);
   t.done=debtRemaining(t)<=0;
   save();renderAll();openTrustCard(trustId);
@@ -1300,6 +1356,7 @@ function saveZekat(){
   const note=document.getElementById('f-znote').value.trim();
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
   S.zakat.push(stamp({id:uid(),amount,date,note}));
+  logAct('ekledi','zekât ödemesi',fmt2(amount)+' ₺');
   const kalan=Math.max(0,totals().zekat-zakatPaid());
   const finish=(renewHavl)=>{if(renewHavl){S.havl=date;S.havlMod=nowISO();}save();closeSheet();renderAll();toast('Allah kabul etsin 🤲')};
   if(S.havl&&kalan<=0){
@@ -1311,7 +1368,7 @@ function saveZekat(){
   } else finish(false);
 }
 function delZekat(id){openConfirm('Bu kayıt silinsin mi?',()=>{
-  const z=S.zakat.find(x=>x.id===id);if(z){z.del=true;stamp(z)}
+  const z=S.zakat.find(x=>x.id===id);if(z){z.del=true;stamp(z);logAct('sildi','zekât ödemesi',fmt2(z.amount)+' ₺')}
   save();renderAll();
 })}
 
@@ -1441,6 +1498,7 @@ async function cloudLogout(){
   const s=getSession();
   if(s){try{await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token}})}catch(e){}}
   setSession(null);localStorage.removeItem(CLOUD_SYNC_KEY);
+  setMe('');
   rtClose();
   toast('Bulut bağlantısı kapatıldı');renderCloud();
 }
@@ -1615,6 +1673,7 @@ async function switchVault(id){
   closeSheet();
   localStorage.setItem(VAULT_KEY,id);
   S=load();
+  const _s=getSession();if(_s&&_s.user)setMe(_s.user.email);
   await refreshRole();
   _syncReady=false;
   await initialSync();
@@ -1822,13 +1881,29 @@ function deleteVault(vid){
 
 let _syncReady=false; // açılıştaki bulut kararı (initialSync) verilmeden HİÇBİR otomatik push çalışmaz
 /* v1.19.0: kasa verisi artık kayıt bazlı BİRLEŞTİRİLİR, üzerine yazılmaz. */
+/* Karşı taraftan gelen değişiklikleri özetleyen toast (v1.20.0).
+   Kendi hareketlerimiz için asla tetiklenmemeli: by!==whoAmI() şartı bunu sağlar. */
+function notifyIncoming(before,after){
+  const seen=new Set((before||[]).map(e=>e.id));
+  const incoming=(after||[]).filter(e=>e&&e.id&&!seen.has(e.id)&&e.by&&e.by!==whoAmI());
+  if(!incoming.length)return;
+  const who=(incoming[incoming.length-1].by||'').split('@')[0];
+  if(incoming.length===1){
+    const e=incoming[0];
+    toast(who+': '+e.act+' — '+e.kind+(e.label?' ('+e.label+')':''));
+  }else{
+    toast(who+': '+incoming.length+' değişiklik yaptı');
+  }
+}
 function applyCloud(row){
   const base=defaults();
   const remote=Object.assign(base,row.data||{},{rates:Object.assign(base.rates,(row.data||{}).rates||{})});
+  const beforeLog=(S.log||[]).slice();
   S=mergeData(S,remote);
   gcTombstones(S);
   localStorage.setItem(dataKey(),JSON.stringify(S));
   localStorage.setItem(CLOUD_SYNC_KEY,row.updated_at||nowISO());
+  notifyIncoming(beforeLog,S.log||[]);
   renderAll();
 }
 async function cloudPush(silent){
@@ -2046,6 +2121,7 @@ async function processAuthTokens(at,rt,ei){
     if(!ur.ok)throw 0;
     const u=await ur.json();
     setSession({access_token:at,refresh_token:rt,expires_at:Date.now()/1000+ei,user:{id:u.id,email:u.email}});
+    setMe(u.email);
     toast('Google ile giriş yapıldı ✓');
     await cloudSyncPrompt();
   }catch(e){toast('Giriş sırasında hata oluştu')}
@@ -2304,6 +2380,7 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
 }
 (async()=>{
   await handleAuthRedirect();
+  {const _s=getSession();if(_s&&_s.user)setMe(_s.user.email);}
   if(getSession())await claimInvites();
   await migrateToVault();
   S=load();renderAll();                    // kasa anahtarı değiştiği için yeniden yükle ve tekrar çiz

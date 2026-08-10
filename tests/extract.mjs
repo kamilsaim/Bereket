@@ -14,7 +14,7 @@ export function loadSyncCore() {
   const b = src.indexOf(END);
   if (a === -1 || b === -1) throw new Error('sync-core işaretleri index.html icinde bulunamadi');
   const code = src.slice(a + START.length, b);
-  const names = ['nowISO', 'setSkew', 'stamp', 'alive', 'isNewer', 'mergeList', 'mergeData', 'gcTombstones', 'stampAll'];
+  const names = ['nowISO', 'setSkew', 'stamp', 'alive', 'isNewer', 'mergeList', 'mergeData', 'gcTombstones', 'stampAll', 'setMe', 'whoAmI', 'logEntry', 'LOG_MAX'];
   const fn = new Function(`${code}\nreturn {${names.join(',')}};`);
   return fn();
 }
