@@ -191,3 +191,39 @@ test('gcTombstones 90 gunden eski mezar taslarini atar, yenileri kalir', () => {
   C.gcTombstones(d, '2026-08-10T00:00:00.000Z');
   assert.deepEqual(d.assets.map(r => r.id).sort(), ['live', 'new']);
 });
+
+/* logClearedAt su işareti (v1.21.3): "hareketleri temizle" birleşim yüzünden
+   geri geliyordu — silme ancak su işaretiyle ifade edilebiliyor. */
+test('mergeData temizleme su isaretinden eski hareketleri suzer', () => {
+  const out = C.mergeData(
+    { log: [], logClearedAt: '2026-05-10T00:00:00.000Z' },
+    { log: [{ id: 'x', at: '2026-05-01T00:00:00.000Z', act: 'ekledi' }] }
+  );
+  assert.deepEqual(out.log, []);
+});
+
+test('mergeData su isaretinden SONRAKI hareketleri korur', () => {
+  const out = C.mergeData(
+    { log: [], logClearedAt: '2026-05-10T00:00:00.000Z' },
+    { log: [{ id: 'yeni', at: '2026-05-11T00:00:00.000Z', act: 'ekledi' }] }
+  );
+  assert.deepEqual(out.log.map(e => e.id), ['yeni']);
+});
+
+test('mergeData iki taraftan EN YENI su isaretini secer (temizlik yayilir)', () => {
+  const out = C.mergeData(
+    { log: [{ id: 'a', at: '2026-05-05T00:00:00.000Z' }], logClearedAt: '2026-05-01T00:00:00.000Z' },
+    { log: [{ id: 'b', at: '2026-05-06T00:00:00.000Z' }], logClearedAt: '2026-05-07T00:00:00.000Z' }
+  );
+  assert.equal(out.logClearedAt, '2026-05-07T00:00:00.000Z');
+  assert.deepEqual(out.log, []);
+});
+
+test('su isareti yoksa hareketler aynen birlesir', () => {
+  const out = C.mergeData(
+    { log: [{ id: 'a', at: '2026-05-05T00:00:00.000Z' }] },
+    { log: [{ id: 'b', at: '2026-05-06T00:00:00.000Z' }] }
+  );
+  assert.deepEqual(out.log.map(e => e.id).sort(), ['a', 'b']);
+  assert.equal(out.logClearedAt, null);
+});

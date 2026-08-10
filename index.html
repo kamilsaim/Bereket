@@ -502,8 +502,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.21.2';
+const APP_VERSION='1.21.3';
 const CHANGELOG=[
+ {v:'1.21.3',d:'10.08.2026',n:'Hareket gecmisini temizleme artik kalici: temizlenen satirlar buluttaki veya diger uyenin cihazindaki kopyadan geri gelmiyor (temizleme su isareti senkronlaniyor, temizlik tum cihazlara yayiliyor)'},
  {v:'1.21.2',d:'10.08.2026',n:'Servet gecmisi grafiginde Android/Chrome ve APK icin uzun basma baglam menusu de bastirildi (iOS secim modu 1.21.1 ile kapatilmisti)'},
  {v:'1.21.1',d:'10.08.2026',n:'Kurtarma ekrani: ana script bozulursa bos ekran yerine onbellegi temizleyip yeniden yukleyen ekran cikar (verilere dokunulmaz); grafikte parmak gezdirirken iOS secim/buyutec modu artik acilmiyor; yeni cihaz veya tarayicida ilk acilista bulut verisi bir denemede gelmezse birkac kez daha denenir, bos ekranla kalinmaz'},
  {v:'1.21.0',d:'10.08.2026',n:'Servet geçmişi grafiği yenilendi: noktalar artık gerçek tarihe göre yerleşiyor (eskiden 3 günlük boşluk ile 30 günlük boşluk aynı görünüyordu), parmakla sürükleyerek günlük değer okunabiliyor, 1 Ay / 3 Ay / Tümü aralıkları, bugünkü nisab çizgisi, en düşük-en yüksek işaretleri ve yüzde değişim'},
@@ -631,11 +632,20 @@ function mergeData(local,remote){
   out.havlMod=hsrc.havlMod||null;
   out.mod=fresh.mod||null;
   // hide BİLİNÇLİ olarak taşınmaz: cihaz ayarıdır, localStorage'da tutulur
-  // log: ekle-sil-yok, sadece birleşim (union) — id'ye göre, artan at, son LOG_MAX
+  /* log: ekleme-sadece birleşim (union, id'ye göre) — AMA silme de mümkün olmalı.
+     Birleşim tek başına "temizle"yi ifade edemez: boşalttığımız liste, buluttaki
+     ya da eşin cihazındaki kopyadan geri gelir. Bu yüzden bir SU İŞARETİ
+     tutuyoruz: logClearedAt. En yeni işaret kazanır ve o tarihten eski satırlar
+     birleştirmede süzülür, böylece temizlik tüm cihazlara yayılır. */
+  const lc=[String(local.logClearedAt||''),String(remote.logClearedAt||'')].sort();
+  out.logClearedAt=lc[1]||null;
+  const cut=out.logClearedAt||'';
   const lm=new Map();
   (local.log||[]).forEach(e=>{if(e&&e.id)lm.set(e.id,e)});
   (remote.log||[]).forEach(e=>{if(e&&e.id)lm.set(e.id,e)});
-  out.log=Array.from(lm.values()).sort((a,b)=>String(a.at)<String(b.at)?-1:1).slice(-LOG_MAX);
+  out.log=Array.from(lm.values())
+    .filter(e=>!cut||String(e.at||'')>cut)
+    .sort((a,b)=>String(a.at)<String(b.at)?-1:1).slice(-LOG_MAX);
   return out;
 }
 function gcTombstones(d,refISO){
@@ -657,7 +667,7 @@ const LIVE={
   zakat:()=>(S.zakat||[]).filter(alive),
   payments:d=>((d&&d.payments)||[]).filter(alive)
 };
-function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,havlMod:null,history:[],log:[]}}
+function defaults(){return {assets:[],debts:[],trusts:[],zakat:[],rates:{gram:0,ceyrek:0,yarim:0,tam:0,cumhuriyet:0,ata:0,gumus:0,usd:0,eur:0},ratesDate:null,ratesAt:null,havl:null,havlMod:null,history:[],log:[],logClearedAt:null}}
 function load(){
   try{const d=JSON.parse(localStorage.getItem(dataKey()));if(d){const base=defaults();return Object.assign(base,d,{rates:Object.assign(base.rates,d.rates||{})})}}catch(e){}
   return defaults();
@@ -1188,8 +1198,11 @@ function renderLog(){
     (canEdit()?'<button class="btn danger wr-hide" onclick="clearLog()">🧹 Hareket geçmişini temizle</button>':'');
 }
 function clearLog(){
-  openConfirm('Hareket geçmişi tamamen silinsin mi? Kimin ne yaptığının kaydı kaybolur; varlık, borç ve zekât kayıtlarınıza dokunulmaz.',()=>{
-    S.log=[];save();renderAll();toast('Hareket geçmişi temizlendi');
+  openConfirm('Hareket geçmişi tamamen silinsin mi? Kimin ne yaptığının kaydı kaybolur; varlık, borç ve zekât kayıtlarınıza dokunulmaz. Kasadaki diğer üyelerde de silinir.',()=>{
+    /* Su işareti şart: yalnızca S.log=[] demek yetmiyor, birleştirme satırları
+       buluttaki/eşin kopyasından geri getiriyordu. */
+    S.logClearedAt=nowISO();S.log=[];
+    save();renderAll();toast('Hareket geçmişi temizlendi');
   },'Temizle');
 }
 function openAllLog(){
