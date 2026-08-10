@@ -502,8 +502,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.21.1';
+const APP_VERSION='1.21.2';
 const CHANGELOG=[
+ {v:'1.21.2',d:'10.08.2026',n:'Servet gecmisi grafiginde Android/Chrome ve APK icin uzun basma baglam menusu de bastirildi (iOS secim modu 1.21.1 ile kapatilmisti)'},
  {v:'1.21.1',d:'10.08.2026',n:'Kurtarma ekrani: ana script bozulursa bos ekran yerine onbellegi temizleyip yeniden yukleyen ekran cikar (verilere dokunulmaz); grafikte parmak gezdirirken iOS secim/buyutec modu artik acilmiyor; yeni cihaz veya tarayicida ilk acilista bulut verisi bir denemede gelmezse birkac kez daha denenir, bos ekranla kalinmaz'},
  {v:'1.21.0',d:'10.08.2026',n:'Servet geçmişi grafiği yenilendi: noktalar artık gerçek tarihe göre yerleşiyor (eskiden 3 günlük boşluk ile 30 günlük boşluk aynı görünüyordu), parmakla sürükleyerek günlük değer okunabiliyor, 1 Ay / 3 Ay / Tümü aralıkları, bugünkü nisab çizgisi, en düşük-en yüksek işaretleri ve yüzde değişim'},
  {v:'1.20.3',d:'10.08.2026',n:'Kasadan çıkarılan kişinin hareketleri korunur ama adının yanında "(ayrıldı)" yazar; Ayarlar → Hareketler bölümüne "hareket geçmişini temizle" düğmesi eklendi'},
@@ -983,6 +984,10 @@ function bindSpark(){
   wrap.onpointerdown=e=>show(e.clientX);
   wrap.onpointermove=e=>{if(e.buttons||e.pointerType==='touch')show(e.clientX)};
   wrap.onpointerup=hide;wrap.onpointercancel=hide;wrap.onpointerleave=hide;
+  /* Android/Chrome'da uzun basmanın açtığı bağlam menüsü user-select ile
+     engellenmiyor (iOS'ta -webkit-touch-callout hallediyor). Grafik üzerinde
+     uzun basmak normal bir okuma hareketi olduğu için olayı bastırıyoruz. */
+  wrap.oncontextmenu=e=>{e.preventDefault();return false};
 }
 
 const HAVL_DAYS=354;
