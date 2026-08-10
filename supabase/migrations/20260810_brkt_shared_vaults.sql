@@ -54,8 +54,14 @@ alter table public.brkt_vaults enable row level security;
 alter table public.brkt_members enable row level security;
 
 drop policy if exists brkt_vaults_sel on public.brkt_vaults;
+-- NOT (10.08.2026 düzeltmesi): owner_id kolu ZORUNLU. PostgREST'in
+-- Prefer: return=representation kullanması INSERT'e RETURNING ekler ve
+-- RETURNING satırı SELECT politikasına tabidir; yeni kasada henüz brkt_members
+-- satırı olmadığından brkt_role() null döner, satır okunamaz ve PostgreSQL bunu
+-- "new row violates row-level security policy" olarak bildirir. Bu yüzden kasa
+-- oluşturma tamamen başarısız oluyordu. Sahip kendi kasasını her zaman görür.
 create policy brkt_vaults_sel on public.brkt_vaults for select to authenticated
-  using (public.brkt_role(id) is not null);
+  using (public.brkt_role(id) is not null or owner_id = auth.uid());
 
 drop policy if exists brkt_vaults_ins on public.brkt_vaults;
 create policy brkt_vaults_ins on public.brkt_vaults for insert to authenticated

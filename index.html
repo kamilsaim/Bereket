@@ -1486,19 +1486,33 @@ async function listVaults(){
     return await r.json();
   }catch(e){return null}
 }
+/* Hata ayrıntısı _lastVaultErr'e yazılır: "Kasa oluşturulamadı" tek başına
+   teşhis edilemiyordu (bir RLS politikası hatası buna saatler kaybettirdi). */
+let _lastVaultErr='';
 async function createVault(name,data){
+  _lastVaultErr='';
   try{
-    const s=await sbToken();if(!s)return null;
+    const s=await sbToken();if(!s){_lastVaultErr='oturum yok';return null}
     const r=await sbFetch('brkt_vaults',{method:'POST',headers:{Prefer:'return=representation'},
       body:JSON.stringify({name:name,owner_id:s.user.id,data:data||{},updated_at:nowISO()})});
-    if(!r||!r.ok)return null;
+    if(!r){_lastVaultErr='ağ hatası';return null}
+    if(!r.ok){_lastVaultErr='HTTP '+r.status+' '+(await r.text().catch(()=>''));console.error('createVault kasa:',_lastVaultErr);return null}
     const v=(await r.json())[0];
+    if(!v||!v.id){_lastVaultErr='sunucu satırı döndürmedi (RLS select?)';console.error('createVault:',_lastVaultErr);return null}
     // Sahip üyeliğini yaz (brkt_members_ins politikasının owner_id kolu buna izin verir)
-    await sbFetch('brkt_members',{method:'POST',body:JSON.stringify({
+    const rm=await sbFetch('brkt_members',{method:'POST',body:JSON.stringify({
       vault_id:v.id,user_id:s.user.id,email:(s.user.email||'').toLowerCase(),
       role:'owner',status:'active',joined_at:nowISO()})});
+    if(!rm||!rm.ok){
+      /* Kasa oluştu ama üyelik yazılamadı: bu haliyle kasa erişilemez kalırdı
+         (brkt_role null). Kasayı geri sil ve hata bildir — yarım kasa bırakma. */
+      _lastVaultErr='üyelik yazılamadı: HTTP '+(rm?rm.status+' '+(await rm.text().catch(()=>'')):'ağ hatası');
+      console.error('createVault üyelik:',_lastVaultErr);
+      await sbFetch('brkt_vaults?id=eq.'+v.id,{method:'DELETE'});
+      return null;
+    }
     return v;
-  }catch(e){return null}
+  }catch(e){_lastVaultErr=String(e&&e.message||e);console.error('createVault:',_lastVaultErr);return null}
 }
 async function cloudLoad(){
   const v=activeVault();if(v==='local')return null;
@@ -1590,7 +1604,7 @@ async function saveNewVault(){
   if(!n){toast('Kasa adı gerekli');return}
   closeSheet();toast('Oluşturuluyor…');
   const v=await createVault(n,defaults());
-  if(!v){toast('Kasa oluşturulamadı');return}
+  if(!v){toast('Kasa oluşturulamadı: '+(_lastVaultErr||'bilinmeyen hata'));return}
   await refreshVaults();
   await switchVault(v.id);
 }
