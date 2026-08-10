@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.18.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.19.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -57,11 +57,22 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Google ile giriş yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz
 - Giriş yapmadan uygulama tamamen çevrimdışı ve cihaz-içi çalışmaya devam eder
 - "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
-- **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve her 20 saniyede bir başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
+- **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve düzenli aralıklarla başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
 - Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
 - **Veri kaybı koruması**: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik senkron çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz
 - **Günlük otomatik yerel yedekler**: son 7 günün yedeği Ayarlar'dan geri yüklenebilir — buluta hiç girmeden de bir güvenlik ağı sağlar
 - **Senkron sağlığı görünür**: Ayarlar'da son senkron "5 dakika önce ✓" biçiminde gösterilir; yedekleme başarısız olduysa veya 24 saattir yedek alınmadıysa Özet sayfasının tepesinde kırmızı uyarı çıkar — sessizce bozulan senkron fark edilmeden kalmaz
+
+### 👥 Paylaşılan Kasalar (isteğe bağlı, v1.19.0)
+- Verilerinizi **eşinizle veya ortağınızla paylaşın**: herkes **kendi Google hesabıyla** girer, hesap paylaşmak gerekmez
+- Davet **e-posta ile**: davet ettiğiniz kişi aynı adresle giriş yaptığında kasa listesinde kendiliğinden görünür
+- İki yetki düzeyi: **Düzenleyen** (kayıt ekler/değiştirir) veya **İzleyici** (yalnızca görür); yetki sonradan değiştirilebilir, üye çıkarılabilir
+- **Birden çok kasa** tutup aralarında geçiş yapabilirsiniz (örn. "Kasam" ve "Ortak Kasa") — her kasanın kendi nisabı, havli ve zekât geçmişi vardır
+- **Değişiklikler karşı tarafta anında görünür** (Supabase Realtime; bağlantı koparsa kısa aralıklı yoklama devralır)
+- **Çift taraflı düzenlemede veri kaybı yok**: her kayıt zaman damgalı, silmeler "mezar taşı" olarak işaretli ve buluta yazma iyimser kilitli — siz varlık eklerken eşiniz borç eklerse **ikisi de korunur**
+- Form doldururken karşı taraftan değişiklik gelirse ekranınız altınızdan yenilenmez, pencereyi kapatınca uygulanır
+- Sahiplik devredilebilir; kasadan ayrılabilir, sahibi kasayı silebilir. Hesabınızı silerseniz başka üyesi olan kasalar en eski üyeye devrolur
+- ⚠️ Paylaştığınız kişi o kasadaki **tüm finansal verinizi** görür; paylaşılmış veri geri alınamaz (bkz. [gizlilik politikası](gizlilik-politikasi.html))
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
@@ -88,9 +99,13 @@ Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 
 Tüm verileriniz varsayılan olarak **yalnızca kendi cihazınızda** (`localStorage`) saklanır.
 Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
-Google ile giriş yapmayı seçerseniz veriler ayrıca Supabase'de, yalnızca sizin erişebileceğiniz
-şekilde (Row Level Security ile korunan, size özel bir kayıt) saklanır. Giriş yapmazsanız bu
-adım hiç devreye girmez.
+Google ile giriş yapmayı seçerseniz veriler ayrıca Supabase'de, Row Level Security ile korunan
+size özel bir kayıtta saklanır. Giriş yapmazsanız bu adım hiç devreye girmez.
+
+Bir kasayı paylaşmayı seçerseniz (v1.19.0), **davet ettiğiniz kişiler o kasadaki tüm finansal
+verinizi görür** ve davet için girdiğiniz e-posta adresleri sunucuda saklanır; paylaşılmış veri
+geri alınamaz. Paylaşımı kullanmadığınız sürece verilerinize yalnızca siz erişebilirsiniz.
+Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 
 ## 🛠️ Teknik
 
@@ -106,6 +121,7 @@ adım hiç devreye girmez.
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.19.0** | 10.08.2026 | **Paylaşılan kasalar**: verileri eşinizle/ortağınızla paylaşma (Düzenleyen/İzleyici yetkileri, e-posta ile davet), birden çok kasa arası geçiş, Realtime ile anında senkron, kayıt bazlı birleştirme sayesinde çift taraflı düzenlemede veri kaybının önlenmesi, hesap silmede kasa sahipliğinin devri |
 | **v1.18.0** | 29.07.2026 | Borç/alacak ↔ varlık aktarımı: yeni kayıt, ödeme ekleme ve "ödendi" işaretlemede ilgili varlık kaydı seçilerek otomatik güncellenir |
 | **v1.17.0** | 28.07.2026 | Çevrimdışı çalışma (service worker + manifest); bulut senkron durumu ve başarısız yedekleme uyarısı; havl vade hatırlatıcısı (bildirim); kur tazeliği göstergesi ve eski kur uyarısı |
 | **v1.16.1** | 28.07.2026 | Logo yenilendi: uygulama içi, tarayıcı sekmesi ve ana ekran ikonu 512.png görseliyle güncellendi |
