@@ -450,8 +450,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.20.2';
+const APP_VERSION='1.20.3';
 const CHANGELOG=[
+ {v:'1.20.3',d:'10.08.2026',n:'Kasadan çıkarılan kişinin hareketleri korunur ama adının yanında "(ayrıldı)" yazar; Ayarlar → Hareketler'e "hareket geçmişini temizle" düğmesi eklendi'},
  {v:'1.20.2',d:'10.08.2026',n:'Hareketler kişi başlığı altında gruplanır — aynı kişinin arka arkaya yaptığı işlerde adı her satırda tekrarlanmaz, liste daha az yer kaplar'},
  {v:'1.20.1',d:'10.08.2026',n:'Üyelik bekçisi: kasa daveti ve kasadan çıkarılma artık 20 saniye içinde algılanır (Realtime yalnızca kasa verisini taşıyor, üyelik değişiklikleri yoklamayla anlaşılıyor); uygulama öne gelince de hemen kontrol edilir'},
  {v:'1.20.0',d:'10.08.2026',n:'Hareket geçmişi: paylaşılan kasada kimin ne eklediği/sildiği/güncellediği kaydedilir; karşı taraftan gelen değişiklikte bildirim (toast) gösterilir; Ayarlar → Hareketler kartından geçmiş görüntülenir'},
@@ -998,7 +999,14 @@ function renderAyar(){
   renderLog();
 }
 /* ═══════════ HAREKET GEÇMİŞİ (v1.20.0) ═══════════ */
-function logWho(e){return e.by?(e.by===whoAmI()?'Siz':e.by.split('@')[0]):'Siz'}
+function logWho(e){
+  if(!e.by||e.by===whoAmI())return 'Siz';
+  const nm=e.by.split('@')[0];
+  /* Kişi kasadan çıkarıldıysa hareketleri SİLİNMEZ (geçmiş bozulmasın) ama
+     artık üye olmadığı belli olsun. */
+  if(_emailsLoaded&&_vaultEmails.indexOf(e.by.toLowerCase())<0)return nm+' (ayrıldı)';
+  return nm;
+}
 function logSorted(){return (S.log||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
 /* Hareketler kişi başlığı altında toplanır: aynı kişinin arka arkaya yaptığı
    işler tek başlık altında listelenir, her satırda adı tekrarlanmaz (yer
@@ -1028,7 +1036,13 @@ function renderLog(){
   if(!list.length){card.style.display='none';return}
   card.style.display='';
   el.innerHTML=logGroups(list.slice(0,12)).map(logGroupHtml).join('')+
-    '<button class="btn ghost" onclick="openAllLog()">Tümünü gör</button>';
+    '<button class="btn ghost" onclick="openAllLog()">Tümünü gör</button>'+
+    (canEdit()?'<button class="btn danger wr-hide" onclick="clearLog()">🧹 Hareket geçmişini temizle</button>':'');
+}
+function clearLog(){
+  openConfirm('Hareket geçmişi tamamen silinsin mi? Kimin ne yaptığının kaydı kaybolur; varlık, borç ve zekât kayıtlarınıza dokunulmaz.',()=>{
+    S.log=[];save();renderAll();toast('Hareket geçmişi temizlendi');
+  },'Temizle');
 }
 function openAllLog(){
   const gs=logGroups(logSorted());
@@ -1657,7 +1671,20 @@ async function refreshVaults(){
     return;
   }
   await refreshRole();
+  await refreshVaultEmails();
   renderVaultBar();renderAyar();
+}
+/* Hareket listesinde artık üye olmayan kişileri "(ayrıldı)" diye işaretlemek
+   için aktif kasanın e-posta listesi tutulur. Yüklenemezse (_emailsLoaded
+   false) hiç kimse "ayrıldı" gösterilmez — yanlış etiket takmaktan iyidir. */
+let _vaultEmails=[],_emailsLoaded=false;
+async function refreshVaultEmails(){
+  const v=activeVault();
+  if(v==='local'||!getSession()){_vaultEmails=[];_emailsLoaded=false;return}
+  try{
+    const r=await sbFetch('brkt_members?vault_id=eq.'+v+'&select=email');
+    if(r&&r.ok){_vaultEmails=(await r.json()).map(m=>String(m.email||'').toLowerCase());_emailsLoaded=true}
+  }catch(e){}
 }
 /* Rol bilgisi yalnızca SUNUCU GERÇEKTEN CEVAP VERİP söylediğinde değiştirilir.
    Ağ hatasında (r===null ya da istisna) son bilinen rol korunur — aksi halde
