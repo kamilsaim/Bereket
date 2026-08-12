@@ -502,8 +502,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.21.3';
+const APP_VERSION='1.22.0';
 const CHANGELOG=[
+ {v:'1.22.0',d:'12.08.2026',n:'Kasa hareketi bildirimleri: kasanizi paylastiginiz kisi bir kayit ekledigi veya degistirdiginde, uygulama kapaliyken de bildirim alirsiniz (Ayarlar - Bulut Yedekleme bolumunden acilir); Play surumu icin FCM, iOS ana ekran uygulamasi ve tarayicilar icin Web Push kullanilir; havl vade hatirlatmasi Play surumunde de artik gercekten calisiyor (eksik olan bildirim eklentisi kuruldu)'},
  {v:'1.21.3',d:'10.08.2026',n:'Hareket gecmisini temizleme artik kalici: temizlenen satirlar buluttaki veya diger uyenin cihazindaki kopyadan geri gelmiyor (temizleme su isareti senkronlaniyor, temizlik tum cihazlara yayiliyor)'},
  {v:'1.21.2',d:'10.08.2026',n:'Servet gecmisi grafiginde Android/Chrome ve APK icin uzun basma baglam menusu de bastirildi (iOS secim modu 1.21.1 ile kapatilmisti)'},
  {v:'1.21.1',d:'10.08.2026',n:'Kurtarma ekrani: ana script bozulursa bos ekran yerine onbellegi temizleyip yeniden yukleyen ekran cikar (verilere dokunulmaz); grafikte parmak gezdirirken iOS secim/buyutec modu artik acilmiyor; yeni cihaz veya tarayicida ilk acilista bulut verisi bir denemede gelmezse birkac kez daha denenir, bos ekranla kalinmaz'},
@@ -683,6 +684,8 @@ function logAct(act,kind,label){
   if(!S.log)S.log=[];
   S.log.push(logEntry(act,kind,label));
   if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX);
+  // Bildirim kuyruğu (v1.22.0): başarılı buluta yazmadan sonra diğer üyelere yollanır
+  try{_pushQueue.push(kind+' '+act+(label?' — '+label:''))}catch(e){}
 }
 /* Veri kaybına karşı emniyet ağı: her günün İLK değişikliğinden önceki durum saklanır (son 7 gün) */
 function isEmptyData(d){
@@ -1626,6 +1629,8 @@ function renderCloud(){
     <button class="btn primary" style="margin-top:4px" onclick="cloudPush()">📤 Şimdi Buluta Yedekle</button>
     <button class="btn ghost" onclick="cloudPull()">☁️ Buluttan Geri Yükle</button>
     <button class="btn ghost" onclick="cloudLogout()">Çıkış Yap</button>
+    <button class="btn ${pushOn()?'gold':'ghost'} wr-hide" style="margin-top:10px" onclick="togglePush()">${pushOn()?'🔔 Kasa bildirimleri açık':'🔕 Kasa bildirimlerini aç'}</button>
+    <p class="mini" style="margin-top:6px;opacity:.75">Kasanızı paylaştığınız kişiler bir kayıt eklediğinde/değiştirdiğinde bu cihaza bildirim gelir. Kendi yaptığınız değişiklikler için bildirim gönderilmez.</p>
     <button class="btn danger" style="margin-top:10px" onclick="deleteAccount()">🗑️ Hesabımı Kalıcı Olarak Sil</button>
     <p class="mini" style="margin-top:6px;opacity:.75">Buluttaki Bereket verilerinizi kalıcı olarak siler; başka uygulamada veriniz yoksa Google hesabınız da silinir. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
   }
@@ -2172,6 +2177,7 @@ async function doCloudPush(silent){
       localStorage.removeItem(CLOUD_ERR_KEY);
       if(!silent)toast('Buluta yedeklendi ✓');
       renderCloud();renderWarnings();renderAll();
+      pushNotifyOthers();          // diğer üyelere haber ver (beklemeye gerek yok)
       return;
     }catch(e){/* sonraki denemeye */}
   }
@@ -2212,6 +2218,120 @@ function queueCloudSync(){
   if(!getSession())return;
   clearTimeout(_cloudTimer);
   _cloudTimer=setTimeout(()=>cloudPush(true),2500);
+}
+
+/* ═══════════ KASA HAREKETİ BİLDİRİMİ (v1.22.0) ═══════════
+   Havl hatırlatıcısından FARKLI bir problem: havl tarihi önceden bellidir, telefonun
+   kendi alarmına yazılabilir. Kasa hareketi ise "başkasının ne zaman ne yapacağı"dır —
+   önceden yazılamaz, dışarıdan push gerekir. İki taşıyıcı gerekiyor çünkü:
+     • Android WebView (APK) Push API'sini DESTEKLEMEZ → FCM eklentisi şart
+     • iOS ana ekran PWA'sı FCM kullanamaz → Web Push (VAPID) şart
+   Gönderim sunucuda: bereket-notify Edge Function (kasa üyeliği orada doğrulanır). */
+const VAPID_PUB='BOf2k2FV93Xl3ZIgRjpRXNBn6zDUUOn0ZevY6xbQOZSMtjaEpoWT2OStEHxpU-CvQf7KfC6p_of93VvodYzhbTI';
+const PUSH_KEY='bereket_push';               // cihaz ayarı: hide gibi, senkronlanmaz
+const _PN=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.PushNotifications;
+function pushOn(){return localStorage.getItem(PUSH_KEY)==='1'}
+
+/* Bu turda YAPTIĞIM değişikliklerin özeti; başarılı push'tan sonra diğer üyelere yollanır.
+   logAct ile beslenir, doCloudPush başarılı olunca boşaltılır. */
+let _pushQueue=[];
+
+function b64ToU8(s){
+  const pad='='.repeat((4-s.length%4)%4);
+  const raw=atob((s+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  const out=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
+  return out;
+}
+
+async function pushSave(kind,endpoint,p256dh,auth){
+  try{
+    const r=await sbFetch('brkt_push_subs?on_conflict=endpoint',
+      {method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
+       body:JSON.stringify({user_id:(getSession()||{}).user.id,kind,endpoint,p256dh,auth,updated_at:nowISO()})});
+    return !!(r&&r.ok);
+  }catch(e){return false}
+}
+
+/* Bildirimleri aç: APK'de FCM token'ı, web/PWA'da Web Push aboneliği alınır. */
+async function enablePush(){
+  if(!getSession())return toast('Önce Google ile giriş yapın');
+  const pn=_PN();
+  if(pn){
+    try{
+      let p=await pn.checkPermissions();
+      if(p.receive!=='granted')p=await pn.requestPermissions();
+      if(p.receive!=='granted')return toast('Bildirim izni verilmedi');
+      /* Android 8+: sunucudan gelen channel_id cihazda TANIMLI DEĞİLSE bildirim hiç
+         gösterilmez. Edge Function 'bereket_kasa' gönderiyor, kanalı burada açıyoruz. */
+      try{await pn.createChannel({id:'bereket_kasa',name:'Kasa hareketleri',
+        description:'Paylaşılan kasada yapılan değişiklikler',importance:4,visibility:1})}catch(e){}
+      // 'registration' olayı token'ı asenkron getirir; register() öncesi dinleyici kurulmalı
+      await new Promise((res,rej)=>{
+        const t=setTimeout(()=>rej(0),15000);
+        pn.addListener('registration',async(tk)=>{
+          clearTimeout(t);
+          if(await pushSave('fcm',tk.value,null,null)){localStorage.setItem(PUSH_KEY,'1');res()}
+          else rej(0);
+        });
+        pn.addListener('registrationError',()=>{clearTimeout(t);rej(0)});
+        pn.register();
+      });
+      renderCloud();return toast('Kasa bildirimleri açıldı ✓');
+    }catch(e){return toast('Bildirim kurulamadı')}
+  }
+  if(!('serviceWorker' in navigator)||!('PushManager' in window))
+    return toast('Bu cihaz bildirimi desteklemiyor');
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted')return toast('Bildirim izni verilmedi');
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(VAPID_PUB)});
+    const j=sub.toJSON();
+    if(await pushSave('web',j.endpoint,j.keys.p256dh,j.keys.auth)){
+      localStorage.setItem(PUSH_KEY,'1');renderCloud();return toast('Kasa bildirimleri açıldı ✓');
+    }
+    toast('Abonelik kaydedilemedi');
+  }catch(e){toast('Bildirim kurulamadı')}
+}
+
+async function disablePush(){
+  localStorage.removeItem(PUSH_KEY);
+  try{
+    if(_PN()){
+      // FCM token'ını sunucudan düşürmek için elimizde değer yok; kullanıcının TÜM
+      // fcm aboneliklerini silmek yerine yalnız bu cihazınkini silemeyiz — bu yüzden
+      // yeniden kayıt olmayı bırakıyoruz ve sunucudaki fcm satırlarını temizliyoruz.
+      await sbFetch('brkt_push_subs?kind=eq.fcm&user_id=eq.'+(getSession()||{}).user.id,{method:'DELETE'});
+    }else if('serviceWorker' in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      const sub=await reg.pushManager.getSubscription();
+      if(sub){
+        await sbFetch('brkt_push_subs?endpoint=eq.'+encodeURIComponent(sub.endpoint),{method:'DELETE'});
+        await sub.unsubscribe();
+      }
+    }
+  }catch(e){}
+  renderCloud();toast('Kasa bildirimleri kapatıldı');
+}
+
+function togglePush(){pushOn()?disablePush():enablePush()}
+
+/* Başarılı buluta yazmadan SONRA çağrılır: bu turda ne yaptıysam diğer üyelere bildir.
+   Hata yutulur — bildirim gitmemesi veri işlemini bozmamalı. */
+async function pushNotifyOthers(){
+  const q=_pushQueue.slice();_pushQueue=[];
+  if(!q.length)return;
+  const v=activeVault();if(v==='local')return;
+  const who=(whoAmI()||'').split('@')[0]||'Biri';
+  const body=q.length===1?(who+': '+q[0]):(who+': '+q.length+' değişiklik yaptı');
+  try{
+    const s=await sbToken();if(!s)return;
+    await fetch(SB_URL+'/functions/v1/bereket-notify',
+      {method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},
+       body:JSON.stringify({vaultId:v,body})});
+  }catch(e){}
 }
 
 async function cloudSyncPrompt(){

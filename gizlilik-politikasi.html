@@ -52,9 +52,14 @@
     <li><b>Ad, e-posta adresi</b> — Google ile giriş yaptığınızda, hesabınızı tanımlamak için.</li>
     <li><b>Uygulama verileriniz</b> (varlık/borç/zekât kayıtlarınız) — bulutta yedeklenir. Bir kasayı başkasıyla paylaşmadığınız sürece yalnızca siz erişebilirsiniz (bkz. <a href="#paylasilan-kasalar">Paylaşılan Kasalar</a>).</li>
     <li><b>Davet ettiğiniz kişilerin e-posta adresleri</b> — yalnızca bir kasayı paylaşmayı seçerseniz; daveti doğru kişiyle eşleştirmek için saklanır.</li>
+    <li><b>Cihaz bildirim kimliği (push token)</b> — yalnızca <b>kasa bildirimlerini açarsanız</b>; bildirimin doğru cihaza ulaşması için saklanır. Kimliğinizi ortaya çıkarmaz, kişisel içerik taşımaz ve bildirimi kapattığınızda silinir.</li>
   </ul>
   <p>Konum, kamera, kişiler veya reklam kimliği gibi hiçbir hassas veri toplanmaz. Uygulamada reklam gösterilmez, analitik veya izleme aracı kullanılmaz.</p>
-  <p><b>Bildirimler:</b> Android sürümünde kamerî yılın (havl) dolmasına yaklaştığında hatırlatma alabilmeniz için bildirim izni istenebilir. Bildirimler tamamen cihazınızda oluşturulur; bu özellik için sunucuya <b>hiçbir veri gönderilmez</b> ve izni reddetseniz de uygulama tam olarak çalışır.</p>
+  <p><b>Bildirimler:</b> Uygulama iki tür bildirim gönderebilir; ikisi de <b>isteğe bağlıdır</b> ve izni reddetseniz de uygulama tam olarak çalışır.</p>
+  <ul>
+    <li><b>Havl hatırlatıcısı</b> — kamerî yılın dolmasına yaklaştığında hatırlatır. Tamamen cihazınızda oluşturulur, sunucuya hiçbir veri gönderilmez.</li>
+    <li><b>Kasa hareketi bildirimi</b> — yalnızca bir kasayı paylaştıysanız ve bu özelliği açtıysanız; diğer üye bir kayıt eklediğinde/değiştirdiğinde bildirim alırsınız. Bildirim yalnızca <b>kimin ne tür bir işlem yaptığını</b> içerir. Bunun için cihazınızın bildirim kimliği saklanır ve bildirim, Android sürümünde <b>Google Firebase Cloud Messaging</b>, diğer platformlarda tarayıcınızın push servisi üzerinden iletilir.</li>
+  </ul>
 
   <h2>Verilerin Kullanımı</h2>
   <ul>
@@ -78,6 +83,7 @@
     <li><b>Supabase</b> — bulut yedeğinizin saklandığı altyapı. Veriler HTTPS ile şifreli aktarılır ve satır bazlı güvenlik (RLS) ile yalnızca size &mdash; bir kasayı paylaştıysanız yalnızca size ve davet ettiğiniz kişilere &mdash; açıktır.</li>
     <li><b>finans.truncgil.com</b> — güncel altın/döviz kurlarını çekmek için (kişisel veri gönderilmez).</li>
     <li><b>Google Fonts</b> — arayüz yazı tiplerini yüklemek için; bu istek sırasında IP adresiniz Google sunucularına ulaşır. Uygulama verileriniz gönderilmez.</li>
+    <li><b>Google Firebase Cloud Messaging</b> — yalnızca kasa bildirimlerini açtıysanız, Android sürümünde bildirimi cihazınıza iletmek için. Finansal verileriniz gönderilmez.</li>
   </ul>
 
   <h2>Verilerin Saklanma Süresi</h2>
@@ -85,6 +91,7 @@
     <li><b>Cihazınızdaki veriler</b> siz silene veya uygulamayı kaldırana kadar cihazınızda kalır; bizim erişimimiz yoktur.</li>
     <li><b>Bulut yedeğiniz</b>, hesabınızı veya ilgili kasayı silene kadar saklanır. Ayrıca bir süre sınırı uygulanmaz, veriler otomatik olarak silinmez.</li>
     <li><b>Silme talebiniz</b> en geç <b>30 gün</b> içinde yerine getirilir. Uygulama içinden yapılan silme işlemi ise anında uygulanır.</li>
+    <li><b>Cihaz bildirim kimliği</b>, bildirimleri kapattığınızda veya kimlik geçersizleştiğinde silinir.</li>
     <li>Altyapı sağlayıcısında (Supabase) tutulan teknik günlükler kısa süreli olup uygulama verilerinizi içermez.</li>
   </ul>
 

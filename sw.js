@@ -1,5 +1,5 @@
-/* Bereket — Service Worker (v1.21.3)
-   Amaç: uygulamanın internetsizken de açılması.
+/* Bereket — Service Worker (v1.22.0)
+   Amaç: uygulamanın internetsizken de açılması + kasa hareketi bildirimleri.
 
    Strateji:
    - Uygulama kabuğu (index.html, gizlilik politikası, ikon, manifest) için AĞ ÖNCELİKLİ:
@@ -10,7 +10,7 @@
    - Supabase (bulut yedek) ve kur API'si: SW hiç karışmaz, doğrudan ağa gider.
      Bunların önbelleğe alınması yanlış/eski veri riski doğurur.
 */
-const CACHE = 'bereket-v1.21.3';
+const CACHE = 'bereket-v1.22.0';
 const SHELL = ['./', './index.html', './gizlilik-politikasi.html', './manifest.json', './512.png'];
 
 self.addEventListener('install', e => {
@@ -60,5 +60,37 @@ self.addEventListener('fetch', e => {
         return r;
       })
       .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+  );
+});
+
+/* ═══════════ KASA HAREKETİ BİLDİRİMİ (v1.22.0) ═══════════
+   Web Push (VAPID) yolu: iOS ana ekran PWA'sı ve Android/masaüstü tarayıcılar.
+   APK'de bu çalışmaz (Android WebView'de Push API yok), orada FCM eklentisi devrede.
+   Gövde çözülemezse bile bildirim GÖSTERİLMELİ: userVisibleOnly:true ile abone
+   olduğumuz için sessiz geçmek tarayıcıda "bu site sizi izliyor" uyarısına yol açar. */
+self.addEventListener('push', e => {
+  let d = { title: 'Bereket', body: 'Kasanızda bir değişiklik var' };
+  try { if (e.data) d = Object.assign(d, e.data.json()); } catch (err) {}
+  e.waitUntil(self.registration.showNotification(d.title, {
+    body: d.body,
+    icon: './512.png',
+    badge: './512.png',
+    tag: 'bereket-kasa',
+    renotify: true,
+    data: { url: d.url || './index.html' }
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = (e.notification.data && e.notification.data.url) || './index.html';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Uygulama zaten açıksa yeni sekme açma, mevcut olanı öne getir
+      for (const c of list) {
+        if (c.url.includes(self.registration.scope) && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(target);
+    })
   );
 });
