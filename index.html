@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- v1.14.6 KRİTİK: "black-translucent" KULLANILMAYACAK. iOS ana ekran modunda sayfayı
@@ -502,8 +502,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.22.0';
+const APP_VERSION='1.22.1';
 const CHANGELOG=[
+ {v:'1.22.1',d:'15.08.2026',n:'viewport meta etiketinden viewport-fit=cover kaldirildi; iOS ana ekran modunda alt menu artik ekranin dibine tam oturuyor (env(safe-area-inset-*) 0 doner, --safe-b/--safe-t degerleri de 0 olur ama CSS zaten bunlari zararsizca kullanmaya devam eder)'},
  {v:'1.22.0',d:'12.08.2026',n:'Kasa hareketi bildirimleri: kasanizi paylastiginiz kisi bir kayit ekledigi veya degistirdiginde, uygulama kapaliyken de bildirim alirsiniz (Ayarlar - Bulut Yedekleme bolumunden acilir); Play surumu icin FCM, iOS ana ekran uygulamasi ve tarayicilar icin Web Push kullanilir; havl vade hatirlatmasi Play surumunde de artik gercekten calisiyor (eksik olan bildirim eklentisi kuruldu)'},
  {v:'1.21.3',d:'10.08.2026',n:'Hareket gecmisini temizleme artik kalici: temizlenen satirlar buluttaki veya diger uyenin cihazindaki kopyadan geri gelmiyor (temizleme su isareti senkronlaniyor, temizlik tum cihazlara yayiliyor)'},
  {v:'1.21.2',d:'10.08.2026',n:'Servet gecmisi grafiginde Android/Chrome ve APK icin uzun basma baglam menusu de bastirildi (iOS secim modu 1.21.1 ile kapatilmisti)'},
