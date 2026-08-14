@@ -225,6 +225,17 @@ nav{
 .chip{display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green-dk);font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:20px}
 .chip b{font-weight:800;color:var(--ink)}
 .chip .ic{font-size:14px}
+.v-sum{position:relative;background:linear-gradient(135deg,var(--green-soft) 0%,var(--gold-lt) 150%);border:1px solid rgba(201,162,39,.28);border-radius:16px;padding:14px 16px 12px;margin-bottom:16px}
+.v-sum .eyebrow{color:var(--green-dk)}
+.v-sum .total{font-family:'Marcellus';font-size:28px;color:var(--green-dk);margin:2px 0 12px}
+.v-sum .total span{font-size:15px;color:var(--gold-dk);font-weight:700}
+.v-sum .chiprow{margin:0 0 8px}
+.v-sum .chip{background:rgba(255,255,255,.55)}
+.v-sum .has{font-size:12px;color:var(--gold-dk);font-weight:700;margin:0}
+.delta-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:800;padding:3px 11px;border-radius:20px;margin-top:8px}
+.delta-badge.up{background:var(--green-soft);color:var(--green-dk)}
+.delta-badge.down{background:var(--red-soft);color:var(--red)}
+.delta-badge.flat{background:rgba(0,0,0,.05);color:var(--muted)}
 .vaultbar{font:600 12px/1.2 Manrope,sans-serif;color:var(--ivory);opacity:.85;
   margin-top:2px;cursor:pointer;display:flex;align-items:center;gap:4px}
 .vaultbar .rolebadge{font-size:10px;padding:1px 6px;border-radius:8px;
@@ -324,6 +335,7 @@ window.addEventListener('error',function(e){
     <div class="eyebrow">Toplam Servet</div>
     <div class="amount num" id="oz-toplam">0<span> ₺</span></div>
     <div class="sub" id="oz-net"></div>
+    <div class="delta-badge" id="oz-delta24" style="display:none"></div>
   </div>
 
   <div id="oz-uyari"></div>
@@ -502,8 +514,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.22.1';
+const APP_VERSION='1.23.0';
 const CHANGELOG=[
+ {v:'1.23.0',d:'15.08.2026',n:'Ozet ekraninda toplam servetin altinda son 24 saatteki degisimi gosteren rozet eklendi (yukari/asagi ok ve tutar farki); Varliklar sekmesinde liste ustune toplam varlik degerini, tur dagilimini ve has altin karsiligini bir arada gosteren vurgulu bir ozet karti eklendi'},
  {v:'1.22.1',d:'15.08.2026',n:'viewport meta etiketinden viewport-fit=cover kaldirildi; iOS ana ekran modunda alt menu artik ekranin dibine tam oturuyor (env(safe-area-inset-*) 0 doner, --safe-b/--safe-t degerleri de 0 olur ama CSS zaten bunlari zararsizca kullanmaya devam eder)'},
  {v:'1.22.0',d:'12.08.2026',n:'Kasa hareketi bildirimleri: kasanizi paylastiginiz kisi bir kayit ekledigi veya degistirdiginde, uygulama kapaliyken de bildirim alirsiniz (Ayarlar - Bulut Yedekleme bolumunden acilir); Play surumu icin FCM, iOS ana ekran uygulamasi ve tarayicilar icin Web Push kullanilir; havl vade hatirlatmasi Play surumunde de artik gercekten calisiyor (eksik olan bildirim eklentisi kuruldu)'},
  {v:'1.21.3',d:'10.08.2026',n:'Hareket gecmisini temizleme artik kalici: temizlenen satirlar buluttaki veya diger uyenin cihazindaki kopyadan geri gelmiyor (temizleme su isareti senkronlaniyor, temizlik tum cihazlara yayiliyor)'},
@@ -708,6 +721,13 @@ function snapshot(){
   if(last&&last.d===day)last.v=t.net; else S.history.push({d:day,v:t.net});
   if(S.history.length>180)S.history=S.history.slice(-180);
 }
+function netDelta24(){
+  // son kaydedilen (bugünden önceki) anlık görüntüye göre net servet farkı
+  const day=new Date().toISOString().slice(0,10);
+  const h=(S.history||[]).filter(x=>x.d<day).sort((a,b)=>a.d<b.d?-1:1);
+  if(!h.length)return null;
+  return totals().net-h[h.length-1].v;
+}
 let _hide=localStorage.getItem(HIDE_KEY)==='1';
 function isHidden(){return _hide}
 const fmt=n=>isHidden()?'••••':new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(Math.round(n));
@@ -787,6 +807,15 @@ function renderOzet(){
   document.getElementById('oz-alacak').textContent=fmt(t.alacak)+' ₺';
   document.getElementById('oz-borc').textContent=fmt(t.borc)+' ₺';
 
+  const dEl=document.getElementById('oz-delta24'),delta=netDelta24();
+  if(delta===null){dEl.style.display='none'}
+  else{
+    const dir=delta>0.5?'up':delta<-0.5?'down':'flat';
+    dEl.className='delta-badge '+dir;
+    dEl.style.display='inline-flex';
+    dEl.textContent=(dir==='up'?'▲':dir==='down'?'▼':'—')+' Son 24 saat: '+(delta>0?'+':delta<0?'−':'')+fmt(Math.abs(delta))+' ₺';
+  }
+
   const zb=document.getElementById('oz-zbanner');
   if(!S.rates.gram){
     zb.className='zbanner free';
@@ -844,12 +873,15 @@ function assetBreakdown(){
 }
 function renderVarlik(){
   const el=document.getElementById('v-list');
-  const th=totalHasGold();
-  const hasLine=th>0?'<p class="mini" style="margin-top:0;margin-bottom:6px">Toplam altınınızın has karşılığı: <b style="color:var(--gold-dk)">≈ '+fmt2(th)+' g</b></p>':'';
   const list=LIVE.assets();
-  const breakLine=list.length?assetBreakdown():'';
   if(!list.length){el.innerHTML='<div class="empty"><span class="big">🪙</span>Henüz varlık eklemediniz.<br>Altın, döviz ve nakitlerinizi ekleyin.</div>';return}
-  el.innerHTML=breakLine+hasLine+list.map(a=>{
+  const th=totalHasGold();
+  const sum='<div class="v-sum"><div class="eyebrow">Toplam Varlık Değeri</div>'+
+    '<div class="total num">'+fmt(totals().varlik)+'<span> ₺</span></div>'+
+    assetBreakdown()+
+    (th>0?'<p class="has">Toplam altınınızın has karşılığı: ≈ '+fmt2(th)+' g</p>':'')+
+    '</div>';
+  el.innerHTML=sum+list.map(a=>{
     const T=ASSET_TYPES[a.type],v=assetValue(a),h=hasGrams(a);
     return '<div class="item"><div class="ic '+(T.gold?'gold':'')+'">'+T.ic+'</div>'+
     '<div class="tx"><b>'+(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+
