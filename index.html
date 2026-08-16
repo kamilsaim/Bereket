@@ -514,8 +514,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.23.0';
+const APP_VERSION='1.23.1';
 const CHANGELOG=[
+ {v:'1.23.1',d:'16.08.2026',n:'APK surumunde geri tusu artik calisiyor: acik pencere varsa once onu kapatir, ana sekmede degilseniz Ozet sekmesine doner, Ozet sekmesindeyken uygulamadan cikar'},
  {v:'1.23.0',d:'15.08.2026',n:'Ozet ekraninda toplam servetin altinda son 24 saatteki degisimi gosteren rozet eklendi (yukari/asagi ok ve tutar farki); Varliklar sekmesinde liste ustune toplam varlik degerini, tur dagilimini ve has altin karsiligini bir arada gosteren vurgulu bir ozet karti eklendi'},
  {v:'1.22.1',d:'15.08.2026',n:'viewport meta etiketinden viewport-fit=cover kaldirildi; iOS ana ekran modunda alt menu artik ekranin dibine tam oturuyor (env(safe-area-inset-*) 0 doner, --safe-b/--safe-t degerleri de 0 olur ama CSS zaten bunlari zararsizca kullanmaya devam eder)'},
  {v:'1.22.0',d:'12.08.2026',n:'Kasa hareketi bildirimleri: kasanizi paylastiginiz kisi bir kayit ekledigi veya degistirdiginde, uygulama kapaliyken de bildirim alirsiniz (Ayarlar - Bulut Yedekleme bolumunden acilir); Play surumu icin FCM, iOS ana ekran uygulamasi ve tarayicilar icin Web Push kullanilir; havl vade hatirlatmasi Play surumunde de artik gercekten calisiyor (eksik olan bildirim eklentisi kuruldu)'},
@@ -2791,6 +2792,16 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
         await processAuthTokens(p.get('access_token'),p.get('refresh_token'),parseInt(p.get('expires_in')||'3600',10));
       }
     }
+  });
+  /* v1.23.1: SPA'da webview navigasyon geçmişi olmadığı için Capacitor'ın
+     varsayılan geri tuşu davranışı (canGoBack yoksa çık) güvenilmiyor —
+     modal açıkken önce onu kapatmak, ana sekmede değilken Özet'e dönmek,
+     Özet'teyken tek basışta uygulamadan çıkmak için elle yönetiliyor. */
+  App.addListener('backButton',()=>{
+    if(document.getElementById('overlay').classList.contains('open')){closeSheet();return}
+    const onTab=document.querySelector('nav .tab.on');
+    if(onTab&&onTab.dataset.p!=='ozet'){document.querySelector('nav .tab[data-p="ozet"]').click();return}
+    App.exitApp();
   });
 }
 (async()=>{
