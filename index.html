@@ -514,8 +514,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.23.1';
+const APP_VERSION='1.23.2';
 const CHANGELOG=[
+ {v:'1.23.2',d:'23.08.2026',n:'Varlik, borc/alacak, emanet ve zekat odemesi kayit formlarina cift gonderim kilidi eklendi: Kaydet dugmesine hizli art arda basilirsa artik ayni kayit iki kez olusmuyor'},
  {v:'1.23.1',d:'16.08.2026',n:'APK surumunde geri tusu artik calisiyor: acik pencere varsa once onu kapatir, ana sekmede degilseniz Ozet sekmesine doner, Ozet sekmesindeyken uygulamadan cikar'},
  {v:'1.23.0',d:'15.08.2026',n:'Ozet ekraninda toplam servetin altinda son 24 saatteki degisimi gosteren rozet eklendi (yukari/asagi ok ve tutar farki); Varliklar sekmesinde liste ustune toplam varlik degerini, tur dagilimini ve has altin karsiligini bir arada gosteren vurgulu bir ozet karti eklendi'},
  {v:'1.22.1',d:'15.08.2026',n:'viewport meta etiketinden viewport-fit=cover kaldirildi; iOS ana ekran modunda alt menu artik ekranin dibine tam oturuyor (env(safe-area-inset-*) 0 doner, --safe-b/--safe-t degerleri de 0 olur ama CSS zaten bunlari zararsizca kullanmaya devam eder)'},
@@ -738,6 +739,16 @@ function toggleHide(){
   renderAll();document.getElementById('eyebtn').textContent=_hide?'🙈':'👁️';
 }
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+/* Çift kayıt koruması: hızlı çift dokunma/tıklamada aynı formun iki kez
+   kaydedilmesini önler. Saf JS zaman kilididir, DOM/tarayıcı motoruna
+   bağlı değildir — iOS/Android tarayıcı ve APK (Capacitor WebView) aynı
+   şekilde çalışır. */
+let _saveLock=0;
+function guardSave(){
+  const now=Date.now();
+  if(now-_saveLock<800)return true;
+  _saveLock=now;return false;
+}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2200)}
 
 /* ═══════════ HESAP ═══════════ */
@@ -1264,6 +1275,7 @@ function saveAsset(id){
   const date=document.getElementById('f-date').value||null;
   const note=document.getElementById('f-note').value.trim();
   if(!qty||qty<=0)return toast('Geçerli bir miktar girin');
+  if(guardSave())return;
   const alabel=fmt2(qty)+' '+(ASSET_TYPES[type]?ASSET_TYPES[type].unit:'')+' '+(ASSET_TYPES[type]?ASSET_TYPES[type].name:type);
   if(id){const a=S.assets.find(x=>x.id===id);Object.assign(a,{type,qty,date,note});stamp(a);logAct('güncelledi','varlık',alabel)}
   else{S.assets.push(stamp({id:uid(),type,qty,date,note}));logAct('ekledi','varlık',alabel)}
@@ -1375,6 +1387,7 @@ function saveDebt(id){
   const due=document.getElementById('f-due').value||null;
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(guardSave())return;
   const wants=!id&&xferWanted();
   const dlabel=who+' · '+fmt2(amount)+' '+(CUR_UNITS[cur]||cur);
   if(id){const d=S.debts.find(x=>x.id===id);Object.assign(d,{dir,who,amount,cur,due});d.done=debtRemaining(d)<=0;stamp(d);logAct('güncelledi',dir==='alacak'?'alacak':'borç',dlabel);}
@@ -1451,6 +1464,7 @@ function savePayment(id){
   const amount=parseFloat(document.getElementById('f-pamt').value);
   const date=document.getElementById('f-pdate').value;
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(guardSave())return;
   const wants=xferWanted();
   if(!d.payments)d.payments=[];
   const np=stamp({id:uid(),amount,date});
@@ -1509,6 +1523,7 @@ function saveTrust(id){
   const note=document.getElementById('f-note').value.trim();
   if(!who)return toast('Kişi adı girin');
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(guardSave())return;
   const tlabel=who+' · '+fmt2(amount)+' '+(CUR_UNITS[cur]||cur);
   if(id){const t=S.trusts.find(x=>x.id===id);Object.assign(t,{dir,who,amount,cur,date,note});t.done=debtRemaining(t)<=0;stamp(t);logAct('güncelledi','emanet',tlabel);}
   else{S.trusts.push(stamp({id:uid(),dir,who,amount,cur,date,note,done:false,payments:[]}));logAct('ekledi','emanet',tlabel);}
@@ -1556,6 +1571,7 @@ function saveTrustPayment(id){
   const amount=parseFloat(document.getElementById('f-pamt').value);
   const date=document.getElementById('f-pdate').value;
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(guardSave())return;
   if(!t.payments)t.payments=[];
   const np=stamp({id:uid(),amount,date});
   t.payments.push(np);
@@ -1590,6 +1606,7 @@ function saveZekat(){
   const date=document.getElementById('f-zdate').value;
   const note=document.getElementById('f-znote').value.trim();
   if(!amount||amount<=0)return toast('Geçerli bir tutar girin');
+  if(guardSave())return;
   S.zakat.push(stamp({id:uid(),amount,date,note}));
   logAct('ekledi','zekât ödemesi',fmt2(amount)+' ₺');
   const kalan=Math.max(0,totals().zekat-zakatPaid());
