@@ -514,8 +514,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.23.2';
+const APP_VERSION='1.23.3';
 const CHANGELOG=[
+ {v:'1.23.3',d:'24.08.2026',n:'Buluttan Geri Yukle yerel kasadayken aciklayici bir uyari gosterir artik: bulutta veri olsa bile yerel kasadan cekilemeyecegini, once Kasalar bolumunden dogru bulut kasasina gecilmesi gerektigini anlatir ve Kasalarimi Ac dugmesiyle oraya yonlendirir'},
  {v:'1.23.2',d:'23.08.2026',n:'Varlik, borc/alacak, emanet ve zekat odemesi kayit formlarina cift gonderim kilidi eklendi: Kaydet dugmesine hizli art arda basilirsa artik ayni kayit iki kez olusmuyor'},
  {v:'1.23.1',d:'16.08.2026',n:'APK surumunde geri tusu artik calisiyor: acik pencere varsa once onu kapatir, ana sekmede degilseniz Ozet sekmesine doner, Ozet sekmesindeyken uygulamadan cikar'},
  {v:'1.23.0',d:'15.08.2026',n:'Ozet ekraninda toplam servetin altinda son 24 saatteki degisimi gosteren rozet eklendi (yukari/asagi ok ve tutar farki); Varliklar sekmesinde liste ustune toplam varlik degerini, tur dagilimini ve has altin karsiligini bir arada gosteren vurgulu bir ozet karti eklendi'},
@@ -1949,7 +1950,8 @@ async function switchVault(id){
   renderAll();renderVaultBar();
   toast('Kasa değiştirildi');
 }
-function openVaults(){
+async function openVaults(){
+  if(getSession())await refreshVaults();
   const rows=_vaults.map(v=>{
     const act=v.id===activeVault();
     return `<button class="btn ${act?'primary':'ghost'}" onclick="switchVault('${v.id}')">${act?'✓ ':''}${esc(v.name)}</button>`;
@@ -2238,6 +2240,15 @@ async function doCloudPush(silent){
   renderCloud();renderWarnings();
 }
 async function cloudPull(){
+  if(activeVault()==='local'){
+    sheet(`<h3>⚠️ Önce Kasa Seçin</h3>
+    <p class="mini" style="margin-top:0">Şu an <b>bu cihaza özel yerel kasa</b> açık. "Buluttan Geri Yükle" yalnızca <b>seçili kasanın</b> bulut kopyasını çeker — yerel kasadayken bulutta veri olsa bile hep "veri bulunamadı" der.</p>
+    <p class="mini">Diğer cihazınızda (ör. telefon) senkron ettiğiniz veriler, o cihazda seçili olan <b>bulut kasasında</b> duruyor. Buraya getirmek için önce Ayarlar → Kasalar'dan <b>aynı bulut kasasına geçmeniz</b> gerekir.</p>
+    <p class="mini" style="color:var(--red)">Dikkat: yerel kasada da veri varsa, kasa değiştirdiğinizde ekranda o veriler değil seçtiğiniz kasanın verileri görünür — yerel kasa silinmez, sadece görüntülenen kasa değişir. Farklı kasalardaki verileri birbirine karıştırmayın.</p>
+    <button class="btn primary" onclick="closeSheet();openVaults()">🗄️ Kasalarımı Aç</button>
+    <button class="btn ghost" onclick="closeSheet()">Kapat</button>`);
+    return;
+  }
   const row=await cloudLoad();
   if(row&&row.data&&Object.keys(row.data).length){
     applyCloud(row);
