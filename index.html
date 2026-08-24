@@ -514,8 +514,9 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.23.3';
+const APP_VERSION='1.23.4';
 const CHANGELOG=[
+ {v:'1.23.4',d:'24.08.2026',n:'Uygulama acilirken de uyari: bulut kasasi/kasalari olan bir kullanici cihaza ozel yerel kasada kaldiysa Ozet sekmesinde artik surekli bir banner gorunuyor ve Kasalarimi Ac baglantisiyla dogru kasaya gecebiliyor, sadece Buluttan Geri Yukle tuslandiginda degil'},
  {v:'1.23.3',d:'24.08.2026',n:'Buluttan Geri Yukle yerel kasadayken aciklayici bir uyari gosterir artik: bulutta veri olsa bile yerel kasadan cekilemeyecegini, once Kasalar bolumunden dogru bulut kasasina gecilmesi gerektigini anlatir ve Kasalarimi Ac dugmesiyle oraya yonlendirir'},
  {v:'1.23.2',d:'23.08.2026',n:'Varlik, borc/alacak, emanet ve zekat odemesi kayit formlarina cift gonderim kilidi eklendi: Kaydet dugmesine hizli art arda basilirsa artik ayni kayit iki kez olusmuyor'},
  {v:'1.23.1',d:'16.08.2026',n:'APK surumunde geri tusu artik calisiyor: acik pencere varsa once onu kapatir, ana sekmede degilseniz Ozet sekmesine doner, Ozet sekmesindeyken uygulamadan cikar'},
@@ -799,6 +800,12 @@ function renderWarnings(){
       w.push(['⚠️','<b>Bulut yedeği alınamıyor.</b> Son deneme '+(relTime(err)||'bilinmiyor')+' başarısız oldu. Ayarlar → Bulut Yedekleme\'den tekrar deneyin.']);
     }else if(last&&(Date.now()-new Date(last).getTime())>24*3600000){
       w.push(['⚠️','<b>'+relTime(last)+'</b> buluta yedeklenmedi. Ayarlar\'dan "Şimdi Buluta Yedekle" yapabilirsiniz.']);
+    }
+    /* Kullanıcının bulut kasası/kasaları var ama şu an bu cihazda cihaza özel
+       yerel kasa açık: buradaki veriler o bulut kasalarındakiyle AYNI DEĞİLDİR
+       (farklı bir kasa). Sessizce farklı görünmesin diye açıkça uyarılıyor. */
+    if(activeVault()==='local'&&_vaults.length){
+      w.push(['🗄️','<b>Kasa seçilmedi.</b> Şu an bu cihaza özel yerel kasadasınız — buradaki veriler bulut kasa(larınız)dan <b>farklıdır</b>. <a href="#" onclick="openVaults();return false" style="color:var(--green);font-weight:600">Kasalarımı Aç</a>']);
     }
   }
   if(LIVE.assets().length&&ratesStale()){
@@ -1890,7 +1897,7 @@ async function refreshVaults(){
   }
   await refreshRole();
   await refreshVaultEmails();
-  renderVaultBar();renderAyar();
+  renderVaultBar();renderAyar();renderWarnings();
 }
 /* Hareket listesinde artık üye olmayan kişileri "(ayrıldı)" diye işaretlemek
    için aktif kasanın e-posta listesi tutulur. Yüklenemezse (_emailsLoaded
