@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.22.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.23.3-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -123,6 +123,8 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.23.x** | 24.08.2026 | Buluttan Geri Yükle, yerel (cihaza özel) kasadayken artık sessizce "veri bulunamadı" demek yerine açıklayıcı bir uyarı gösteriyor ve Kasalar bölümüne yönlendiriyor (v1.23.3). Kayıt formlarına çift gönderim kilidi eklendi (v1.23.2). APK sürümünde geri tuşu düzeltildi (v1.23.1). Özet ekranında son 24 saatteki servet değişim rozeti ve Varlıklar sekmesinde toplam/tür dağılımı/has altın özet kartı eklendi (v1.23.0) |
+| **v1.22.1** | 15.08.2026 | iOS ana ekran modunda alt menünün ekranın dibine tam oturması sağlandı (viewport-fit=cover kaldırıldı) |
 | **v1.22.0** | 12.08.2026 | **Kasa hareketi bildirimleri**: kasanızı paylaştığınız kişi bir kayıt eklediğinde/değiştirdiğinde uygulama kapalıyken de bildirim alırsınız (Ayarlar → Bulut Yedekleme'den açılır). Play sürümü için FCM, iOS ana ekran uygulaması ve tarayıcılar için Web Push kullanılır — bildirim yalnızca kimin ne tür işlem yaptığını taşır, finansal veri içermez. Ayrıca havl vade hatırlatması Play sürümünde de artık gerçekten çalışıyor (eksik olan bildirim eklentisi kuruldu) |
 | **v1.21.x** | 10.08.2026 | **Servet geçmişi grafiği yenilendi**: noktalar gerçek tarihe göre yerleşiyor (eskiden dizi sırasına göreydi, 3 günlük boşluk ile 30 günlük boşluk aynı görünüyordu), parmakla sürükleyerek günlük değer okuma, 1 Ay/3 Ay/Tümü aralıkları, bugünkü nisab çizgisi, en düşük–en yüksek işaretleri. Ayrıca: script bozulursa boş ekran yerine çıkan kurtarma ekranı, iOS/Android'de grafikte seçim ve bağlam menüsünün engellenmesi, yeni cihazda bulut verisinin yeniden denenmesi (v1.21.1–.2), hareket geçmişi temizliğinin kalıcı ve tüm cihazlara yayılan hale gelmesi (v1.21.3) |
 | **v1.20.x** | 10.08.2026 | **Hareket geçmişi**: kasadaki her ekleme/güncelleme/silme kim ve ne zaman bilgisiyle kaydedilir, karşı taraf değişiklik yapınca bildirim çıkar, Ayarlar → Hareketler'den görüntülenir. Üyelik bekçisi ile kasa daveti ve kasadan çıkarılma 20 saniye içinde algılanır (v1.20.1), hareketler kişi başlığı altında gruplanır (v1.20.2), ayrılan üye "(ayrıldı)" olarak işaretlenir ve geçmiş temizlenebilir (v1.20.3) |
