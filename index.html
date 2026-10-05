@@ -514,8 +514,12 @@ const ASSET_TYPES={
   tl:    {name:'TL Nakit / Hesap', unit:'₺',ic:'₺', gold:false},
   diger: {name:'Diğer (TL değeri)',unit:'₺',ic:'📦', gold:false},
 };
-const APP_VERSION='1.23.4';
+/* Tanımsız tür (silinmiş tür, yeni sürümden gelen veri, bozuk kayıt) ekranı çökertmesin; değeri 0 sayılır */
+const UNKNOWN_TYPE={name:'Bilinmeyen tür',unit:'',ic:'❔',gold:false};
+function atype(t){return ASSET_TYPES[t]||UNKNOWN_TYPE}
+const APP_VERSION='1.23.5';
 const CHANGELOG=[
+ {v:'1.23.5',d:'05.10.2026',n:'Guvenlik: varlik ve zekat notlari artik guvenli metin olarak gosteriliyor (paylasilan kasada kod enjeksiyonu kapatildi), kayit kimlikleri ve tarihler tiklama kodlarina guvenli gomuluyor, tanimsiz varlik turu ekrani cokertmiyor. Sunucu: duzenleyici kasa sahipligini ele geciremiyor, davetler yalnizca dogrulanmis e-postayla kabul ediliyor, izleyiciler bildirim gonderemiyor'},
  {v:'1.23.4',d:'24.08.2026',n:'Uygulama acilirken de uyari: bulut kasasi/kasalari olan bir kullanici cihaza ozel yerel kasada kaldiysa Ozet sekmesinde artik surekli bir banner gorunuyor ve Kasalarimi Ac baglantisiyla dogru kasaya gecebiliyor, sadece Buluttan Geri Yukle tuslandiginda degil'},
  {v:'1.23.3',d:'24.08.2026',n:'Buluttan Geri Yukle yerel kasadayken aciklayici bir uyari gosterir artik: bulutta veri olsa bile yerel kasadan cekilemeyecegini, once Kasalar bolumunden dogru bulut kasasina gecilmesi gerektigini anlatir ve Kasalarimi Ac dugmesiyle oraya yonlendirir'},
  {v:'1.23.2',d:'23.08.2026',n:'Varlik, borc/alacak, emanet ve zekat odemesi kayit formlarina cift gonderim kilidi eklendi: Kaydet dugmesine hizli art arda basilirsa artik ayni kayit iki kez olusmuyor'},
@@ -756,12 +760,13 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 /* ═══════════ HESAP ═══════════ */
 function assetValue(a){
   if(a.type==='tl'||a.type==='diger')return a.qty;
+  if(!ASSET_TYPES[a.type])return 0;
   const T=ASSET_TYPES[a.type];
   if(T.factor)return a.qty*T.factor*(S.rates[T.base]||0);
   return a.qty*(S.rates[a.type]||0);
 }
 function hasGrams(a){
-  const T=ASSET_TYPES[a.type];
+  const T=atype(a.type);
   if(T.factor)return a.qty*T.factor;      // ayarlı ziynet: gram × milyem
   if(T.hasGr)return a.qty*T.hasGr;        // darphane altını: adet × has içerik
   return 0;
@@ -856,7 +861,7 @@ function renderOzet(){
   // dağılım
   const groups={};
   LIVE.assets().forEach(a=>{
-    const g=ASSET_TYPES[a.type].gold?'gold':a.type;
+    const g=atype(a.type).gold?'gold':a.type;
     groups[g]=(groups[g]||0)+assetValue(a);
   });
   const bar=document.getElementById('oz-distbar'),leg=document.getElementById('oz-legend');
@@ -887,7 +892,7 @@ function assetBreakdown(){
   const sums={};
   LIVE.assets().forEach(a=>{sums[a.type]=(sums[a.type]||0)+a.qty});
   return '<div class="chiprow">'+Object.entries(sums).map(([type,qty])=>{
-    const T=ASSET_TYPES[type];
+    const T=atype(type);
     return '<span class="chip"><span class="ic">'+T.ic+'</span>'+T.name.split('(')[0].trim()+': <b>'+fmt2(qty)+' '+T.unit+'</b></span>';
   }).join('')+'</div>';
 }
@@ -902,13 +907,13 @@ function renderVarlik(){
     (th>0?'<p class="has">Toplam altınınızın has karşılığı: ≈ '+fmt2(th)+' g</p>':'')+
     '</div>';
   el.innerHTML=sum+list.map(a=>{
-    const T=ASSET_TYPES[a.type],v=assetValue(a),h=hasGrams(a);
+    const T=atype(a.type),v=assetValue(a),h=hasGrams(a);
     return '<div class="item"><div class="ic '+(T.gold?'gold':'')+'">'+T.ic+'</div>'+
-    '<div class="tx"><b>'+(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+
+    '<div class="tx"><b>'+esc(a.note||T.name)+'</b><small>'+fmt2(a.qty)+' '+T.unit+(a.note?' · '+T.name:'')+
     (h>0?' · <span style="color:var(--gold-dk);font-weight:700">≈ '+fmt2(h)+' g has</span>':'')+
     (a.date?' · '+trDate(a.date):'')+'</small></div>'+
     '<div class="val"><b class="num">'+fmt(v)+' ₺</b></div>'+
-    '<div class="rowbtns"><button class="iconbtn" onclick="openAsset(\''+a.id+'\')" aria-label="Düzenle">✏️</button><button class="iconbtn" onclick="delAsset(\''+a.id+'\')" aria-label="Sil">🗑️</button></div></div>';
+    '<div class="rowbtns"><button class="iconbtn" onclick="openAsset('+jsq(a.id)+')" aria-label="Düzenle">✏️</button><button class="iconbtn" onclick="delAsset('+jsq(a.id)+')" aria-label="Sil">🗑️</button></div></div>';
   }).join('');
 }
 
@@ -944,9 +949,9 @@ function renderZekat(){
   if(!zlist.length){el.innerHTML='<div class="empty"><span class="big">🌱</span>Kayıtlı zekât ödemesi yok.</div>'}
   else el.innerHTML=zlist.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(z=>
     '<div class="item"><div class="ic gold">🌱</div>'+
-    '<div class="tx"><b>'+(z.note||'Zekât ödemesi')+'</b><small>'+trDate(z.date)+'</small></div>'+
+    '<div class="tx"><b>'+esc(z.note||'Zekât ödemesi')+'</b><small>'+trDate(z.date)+'</small></div>'+
     '<div class="val"><b class="num">'+fmt(z.amount)+' ₺</b></div>'+
-    '<button class="iconbtn" onclick="delZekat(\''+z.id+'\')" aria-label="Sil">🗑️</button></div>').join('');
+    '<button class="iconbtn" onclick="delZekat('+jsq(z.id)+')" aria-label="Sil">🗑️</button></div>').join('');
 }
 
 /* ═══════════ SERVET GEÇMİŞİ GRAFİĞİ (v1.21.0) ═══════════
@@ -998,7 +1003,7 @@ function renderSpark(){
   const iMin=vs.indexOf(Math.min(...vs)),iMax=vs.indexOf(Math.max(...vs));
   const diff=vs[vs.length-1]-vs[0];
   const pct=vs[0]?(diff/Math.abs(vs[0])*100):0;
-  const rb=(k,t)=>'<button onclick="setSparkRange(\''+k+'\')" class="rngbtn'+(_sparkRange===k?' on':'')+'">'+t+'</button>';
+  const rb=(k,t)=>'<button onclick="setSparkRange('+jsq(k)+')" class="rngbtn'+(_sparkRange===k?' on':'')+'">'+t+'</button>';
   el.innerHTML=
   '<div class="rngrow">'+rb('1m','1 Ay')+rb('3m','3 Ay')+rb('all','Tümü')+'</div>'+
   '<div id="sp-wrap" style="position:relative;touch-action:pan-y">'+
@@ -1184,10 +1189,10 @@ function renderBorc(){
   const curU=CUR_UNITS;
   el.innerHTML=list.map(d=>{
     const v=debtValueTL(d),isB=d.dir==='borc',rem=debtRemaining(d);
-    return '<div class="item'+(d.done?' done':'')+'"><div class="ic '+(isB?'red':'')+'" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')">'+(isB?'📤':'📥')+'</div>'+
-    '<div class="tx" style="cursor:pointer" onclick="openDebtCard(\''+d.id+'\')"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · <b>'+fmt2(rem)+' '+curU[d.cur]+'</b></small></div>'+
+    return '<div class="item'+(d.done?' done':'')+'"><div class="ic '+(isB?'red':'')+'" style="cursor:pointer" onclick="openDebtCard('+jsq(d.id)+')">'+(isB?'📤':'📥')+'</div>'+
+    '<div class="tx" style="cursor:pointer" onclick="openDebtCard('+jsq(d.id)+')"><b>'+esc(d.who)+'</b><small>'+(isB?'Borcum':'Alacağım')+' · <b>'+fmt2(rem)+' '+curU[d.cur]+'</b></small></div>'+
     '<div class="val"><b class="num '+(isB?'neg':'pos')+'">'+(isB?'−':'+')+fmt(v)+' ₺</b></div>'+
-    '<div class="rowbtns"><button class="iconbtn" onclick="toggleDebt(\''+d.id+'\')" aria-label="Ödendi">'+(d.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delDebt(\''+d.id+'\')" aria-label="Sil">🗑️</button></div></div>';
+    '<div class="rowbtns"><button class="iconbtn" onclick="toggleDebt('+jsq(d.id)+')" aria-label="Ödendi">'+(d.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delDebt('+jsq(d.id)+')" aria-label="Sil">🗑️</button></div></div>';
   }).join('');
 }
 
@@ -1198,9 +1203,9 @@ function renderTrusts(){
   if(!list.length){el.innerHTML='<div class="empty"><span class="big">🔒</span>Emanet kaydı yok.</div>';return}
   el.innerHTML=list.map(t=>{
     const isMine=t.dir==='bende',rem=debtRemaining(t),paid=debtPaid(t);
-    return '<div class="item'+(t.done?' done':'')+'"><div class="ic" style="cursor:pointer" onclick="openTrustCard(\''+t.id+'\')">🔒</div>'+
-    '<div class="tx" style="cursor:pointer" onclick="openTrustCard(\''+t.id+'\')"><b>'+esc(t.who)+'</b><small>'+(isMine?'Bende duran emanet':'Onda duran emanetim')+' · '+fmt2(rem)+' '+curU[t.cur]+(paid>0?' (kalan, '+LIVE.payments(t).length+' iade)':'')+(t.date?' · '+trDate(t.date):'')+'</small></div>'+
-    '<div class="rowbtns"><button class="iconbtn" onclick="toggleTrust(\''+t.id+'\')" aria-label="İade edildi">'+(t.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delTrust(\''+t.id+'\')" aria-label="Sil">🗑️</button></div></div>';
+    return '<div class="item'+(t.done?' done':'')+'"><div class="ic" style="cursor:pointer" onclick="openTrustCard('+jsq(t.id)+')">🔒</div>'+
+    '<div class="tx" style="cursor:pointer" onclick="openTrustCard('+jsq(t.id)+')"><b>'+esc(t.who)+'</b><small>'+(isMine?'Bende duran emanet':'Onda duran emanetim')+' · '+fmt2(rem)+' '+curU[t.cur]+(paid>0?' (kalan, '+LIVE.payments(t).length+' iade)':'')+(t.date?' · '+trDate(t.date):'')+'</small></div>'+
+    '<div class="rowbtns"><button class="iconbtn" onclick="toggleTrust('+jsq(t.id)+')" aria-label="İade edildi">'+(t.done?'↩️':'✅')+'</button><button class="iconbtn" onclick="delTrust('+jsq(t.id)+')" aria-label="Sil">🗑️</button></div></div>';
   }).join('');
 }
 
@@ -1275,7 +1280,7 @@ function openAsset(id){
   <label>Miktar</label><input type="number" step="0.01" inputmode="decimal" id="f-qty" value="${a?a.qty:''}" placeholder="örn. 10">
   <label>Alış Tarihi (isteğe bağlı)</label><input type="date" id="f-date" value="${a&&a.date?a.date:''}">
   <label>Açıklama (isteğe bağlı)</label><input id="f-note" value="${a?esc(a.note||''):''}" placeholder="örn. Kasadaki bilezikler">
-  <button class="btn primary" onclick="saveAsset('${a?a.id:''}')">${a?'Kaydet':'Ekle'}</button>`);
+  <button class="btn primary" onclick="saveAsset(${jsq(a?a.id:'')})">${a?'Kaydet':'Ekle'}</button>`);
 }
 function saveAsset(id){
   const type=document.getElementById('f-type').value;
@@ -1309,7 +1314,7 @@ function assetTransfer(o){
   _xfer=o;
   const add=o.sign>0,u=CUR_UNITS[o.cur]||T.unit;
   const rows=LIVE.assets().filter(a=>a.type===o.cur).map(a=>
-    `<div class="item pickrow" onclick="xferPick('${a.id}')">
+    `<div class="item pickrow" onclick="xferPick(${jsq(a.id)})">
       <div class="tx"><b>${T.name}</b>${a.note?'<div class="mini">'+esc(a.note)+'</div>':''}</div>
       <div class="val"><b class="num">${fmt2(a.qty)} ${T.unit}</b></div>
       <span aria-hidden="true">${add?'➕':'➖'}</span>
@@ -1381,7 +1386,7 @@ function openDebt(id){
   </div>
   <label>Vade (isteğe bağlı)</label><input type="date" id="f-due" value="${d&&d.due?d.due:''}">
   ${d?'':xferChk('Alacak eklerken bu tutar varlıklarından düşülür (parayı verdin), borç eklerken varlıklarına eklenir (parayı aldın). Hangi varlık kaydına işleneceğini kaydettikten sonra seçersin.')}
-  <button class="btn primary" onclick="saveDebt('${d?d.id:''}')">${d?'Kaydet':'Ekle'}</button>`);
+  <button class="btn primary" onclick="saveDebt(${jsq(d?d.id:'')})">${d?'Kaydet':'Ekle'}</button>`);
   document.querySelectorAll('#f-dir button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#f-dir button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   });
@@ -1424,7 +1429,7 @@ function askDebtXfer(id,rem){
   const al=d.dir==='alacak';
   sheet(`<h3>Varlıklara işlensin mi?</h3>
   <p class="mini" style="margin-top:0"><b>${esc(d.who)}</b> kaydı kapatıldı. Kalan <b class="num">${fmt2(rem)} ${CUR_UNITS[d.cur]}</b> ${al?'varlıklarına eklensin':'varlıklarından düşülsün'} mü?</p>
-  <button class="btn primary" onclick="runDebtXfer('${id}',${rem})">Evet, işle</button>
+  <button class="btn primary" onclick="runDebtXfer(${jsq(id)},${rem})">Evet, işle</button>
   <button class="btn ghost" onclick="closeSheet();toast('Kapatıldı ✓')">Hayır, sadece kapat</button>`);
 }
 function runDebtXfer(id,rem){
@@ -1452,9 +1457,9 @@ function openDebtCard(id){
   <label>Ödeme Geçmişi</label>
   ${(()=>{const pl=LIVE.payments(d);return pl.length?pl.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(p=>
     '<div class="item"><div class="tx"><b>'+trDate(p.date)+'</b></div><div class="val"><b class="num">'+fmt2(p.amount)+' '+CUR_UNITS[d.cur]+'</b></div>'+
-    '<button class="iconbtn" onclick="delPayment(\''+d.id+'\',\''+p.id+'\')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz ödeme kaydı yok.</p>'})()}
-  <button class="btn gold" onclick="openPayment('${d.id}')">💵 Ödeme Ekle</button>
-  <button class="btn ghost" onclick="openDebt('${d.id}')">✏️ Kaydı Düzenle</button>`);
+    '<button class="iconbtn" onclick="delPayment('+jsq(d.id)+','+jsq(p.id)+')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz ödeme kaydı yok.</p>'})()}
+  <button class="btn gold" onclick="openPayment(${jsq(d.id)})">💵 Ödeme Ekle</button>
+  <button class="btn ghost" onclick="openDebt(${jsq(d.id)})">✏️ Kaydı Düzenle</button>`);
 }
 function openPayment(id){
   const d=S.debts.find(x=>x.id===id);if(!d)return;
@@ -1464,8 +1469,8 @@ function openPayment(id){
   <label>Ödeme Tutarı</label><input type="number" step="0.01" inputmode="decimal" id="f-pamt" value="${rem?Math.round(rem*100)/100:''}" placeholder="0">
   <label>Tarih</label><input type="date" id="f-pdate" value="${new Date().toISOString().slice(0,10)}">
   ${xferChk(d.dir==='alacak'?'Tahsil ettiğin tutar varlıklarına eklenir. Hangi kayda işleneceğini birazdan seçersin.':'Ödediğin tutar varlıklarından düşülür. Hangi kayıttan düşüleceğini birazdan seçersin.')}
-  <button class="btn primary" onclick="savePayment('${d.id}')">Ödemeyi Kaydet</button>
-  <button class="btn ghost" onclick="openDebtCard('${d.id}')">◀ Geri</button>`);
+  <button class="btn primary" onclick="savePayment(${jsq(d.id)})">Ödemeyi Kaydet</button>
+  <button class="btn ghost" onclick="openDebtCard(${jsq(d.id)})">◀ Geri</button>`);
 }
 function savePayment(id){
   const d=S.debts.find(x=>x.id===id);if(!d)return;
@@ -1516,7 +1521,7 @@ function openTrust(id){
   </div>
   <label>Tarih (isteğe bağlı)</label><input type="date" id="f-date" value="${t&&t.date?t.date:''}">
   <label>Not (isteğe bağlı)</label><input id="f-note" value="${t?esc(t.note||''):''}" placeholder="örn. Kasada zarf içinde">
-  <button class="btn primary" onclick="saveTrust('${t?t.id:''}')">${t?'Kaydet':'Ekle'}</button>`);
+  <button class="btn primary" onclick="saveTrust(${jsq(t?t.id:'')})">${t?'Kaydet':'Ekle'}</button>`);
   document.querySelectorAll('#f-dir button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#f-dir button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   });
@@ -1560,9 +1565,9 @@ function openTrustCard(id){
   <label>İade Geçmişi</label>
   ${(()=>{const pl=LIVE.payments(t);return pl.length?pl.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(p=>
     '<div class="item"><div class="tx"><b>'+trDate(p.date)+'</b></div><div class="val"><b class="num">'+fmt2(p.amount)+' '+CUR_UNITS[t.cur]+'</b></div>'+
-    '<button class="iconbtn" onclick="delTrustPayment(\''+t.id+'\',\''+p.id+'\')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz iade kaydı yok.</p>'})()}
-  <button class="btn gold" onclick="openTrustPayment('${t.id}')">💵 İade Ekle</button>
-  <button class="btn ghost" onclick="openTrust('${t.id}')">✏️ Kaydı Düzenle</button>`);
+    '<button class="iconbtn" onclick="delTrustPayment('+jsq(t.id)+','+jsq(p.id)+')" aria-label="Sil">🗑️</button></div>').join(''):'<p class="mini" style="margin-top:0">Henüz iade kaydı yok.</p>'})()}
+  <button class="btn gold" onclick="openTrustPayment(${jsq(t.id)})">💵 İade Ekle</button>
+  <button class="btn ghost" onclick="openTrust(${jsq(t.id)})">✏️ Kaydı Düzenle</button>`);
 }
 function openTrustPayment(id){
   const t=S.trusts.find(x=>x.id===id);if(!t)return;
@@ -1571,8 +1576,8 @@ function openTrustPayment(id){
   <p class="mini" style="margin-top:0">${esc(t.who)} · Kalan: <b class="num">${fmt2(rem)} ${CUR_UNITS[t.cur]}</b></p>
   <label>İade Tutarı</label><input type="number" step="0.01" inputmode="decimal" id="f-pamt" value="${rem?Math.round(rem*100)/100:''}" placeholder="0">
   <label>Tarih</label><input type="date" id="f-pdate" value="${new Date().toISOString().slice(0,10)}">
-  <button class="btn primary" onclick="saveTrustPayment('${t.id}')">İadeyi Kaydet</button>
-  <button class="btn ghost" onclick="openTrustCard('${t.id}')">◀ Geri</button>`);
+  <button class="btn primary" onclick="saveTrustPayment(${jsq(t.id)})">İadeyi Kaydet</button>
+  <button class="btn ghost" onclick="openTrustCard(${jsq(t.id)})">◀ Geri</button>`);
 }
 function saveTrustPayment(id){
   const t=S.trusts.find(x=>x.id===id);if(!t)return;
@@ -1961,7 +1966,7 @@ async function openVaults(){
   if(getSession())await refreshVaults();
   const rows=_vaults.map(v=>{
     const act=v.id===activeVault();
-    return `<button class="btn ${act?'primary':'ghost'}" onclick="switchVault('${v.id}')">${act?'✓ ':''}${esc(v.name)}</button>`;
+    return `<button class="btn ${act?'primary':'ghost'}" onclick="switchVault(${jsq(v.id)})">${act?'✓ ':''}${esc(v.name)}</button>`;
   }).join('');
   sheet(`<h3>Kasalar</h3>
   <p class="mini" style="margin-top:0">Verileriniz kasa başına ayrı tutulur. Bir kasayı paylaşmak için Ayarlar → Kasalar → Üyeler.</p>
@@ -1988,7 +1993,7 @@ function renameVault(id){
   const v=_vaults.find(x=>x.id===id);if(!v)return;
   sheet(`<h3>Kasayı Yeniden Adlandır</h3>
   <label>Kasa adı</label><input id="f-vrename" value="${esc(v.name)}" maxlength="40">
-  <button class="btn primary" onclick="saveRenameVault('${id}')">Kaydet</button>
+  <button class="btn primary" onclick="saveRenameVault(${jsq(id)})">Kaydet</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
 }
 async function saveRenameVault(id){
@@ -2012,11 +2017,11 @@ function renderVaults(){
       <div><b>${esc(v.name)}</b>${act?' <span class="mini">(aktif)</span>':''}
         ${act?'<br><span class="mini">'+(rn[_role]||'')+'</span>':''}</div>
       <div style="display:flex;align-items:center;gap:4px">
-        ${!act?`<button class="btn ghost" style="margin:0;padding:6px 10px" onclick="switchVault('${v.id}')">Geç</button>`:''}
+        ${!act?`<button class="btn ghost" style="margin:0;padding:6px 10px" onclick="switchVault(${jsq(v.id)})">Geç</button>`:''}
         ${act&&_role==='owner'?`
-          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="renameVault('${v.id}')" title="Yeniden adlandır">✏️</button>
-          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="openMembers('${v.id}')" title="Üyeler">👥</button>`:''}
-        ${act&&_role!=='owner'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="leaveVault('${v.id}')" title="Kasadan ayrıl">🚪</button>`:''}
+          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="renameVault(${jsq(v.id)})" title="Yeniden adlandır">✏️</button>
+          <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="openMembers(${jsq(v.id)})" title="Üyeler">👥</button>`:''}
+        ${act&&_role!=='owner'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="leaveVault(${jsq(v.id)})" title="Kasadan ayrıl">🚪</button>`:''}
       </div></div>`;
   }).join('');
   el.innerHTML=(rows||'<p class="mini">Henüz kasanız yok.</p>')+
@@ -2057,7 +2062,7 @@ function maybeShowJoinPrompt(){
   const vs=_joinedVaults.filter(v=>v.id!==activeVault());
   _joinedVaults=[];
   if(!vs.length)return false;
-  const btns=vs.map(v=>`<button class="btn primary" onclick="switchVault('${v.id}')">🔁 ${esc(v.name)} kasasına geç</button>`).join('');
+  const btns=vs.map(v=>`<button class="btn primary" onclick="switchVault(${jsq(v.id)})">🔁 ${esc(v.name)} kasasına geç</button>`).join('');
   sheet(`<h3>🤝 Kasa Davetiniz Kabul Edildi</h3>
   <p class="mini" style="margin-top:0">${vs.length>1?vs.length+' kasaya':'<b>'+esc(vs[0].name)+'</b> kasasına'} eklendiniz. Verileri görmek için o kasaya geçmeniz gerekiyor.</p>
   ${btns}
@@ -2077,15 +2082,15 @@ async function openMembers(vid){
           <option value="editor"${m.role==='editor'?' selected':''}>Düzenleyen</option>
           <option value="viewer"${m.role==='viewer'?' selected':''}>İzleyici</option>
         </select>
-        ${m.status==='active'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="transferOwner('${vid}','${m.id}')" title="Sahipliği devret">👑</button>`:''}
-        <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="removeMember('${vid}','${m.id}')" title="Çıkar">✕</button>
+        ${m.status==='active'?`<button class="btn ghost" style="margin:0;padding:6px 9px" onclick="transferOwner(${jsq(vid)},${jsq(m.id)})" title="Sahipliği devret">👑</button>`:''}
+        <button class="btn ghost" style="margin:0;padding:6px 9px" onclick="removeMember(${jsq(vid)},${jsq(m.id)})" title="Çıkar">✕</button>
       `:''}
     </div></div>`).join('');
   sheet(`<h3>Üyeler</h3>
   <p class="mini" style="margin-top:0">⚠️ Davet ettiğiniz kişi bu kasadaki <b>tüm finansal verinizi</b> görür.</p>
   ${rows}
-  <button class="btn gold" onclick="openInvite('${vid}')">➕ Kişi Davet Et</button>
-  <button class="btn danger" onclick="deleteVault('${vid}')">🗑️ Kasayı Sil</button>
+  <button class="btn gold" onclick="openInvite(${jsq(vid)})">➕ Kişi Davet Et</button>
+  <button class="btn danger" onclick="deleteVault(${jsq(vid)})">🗑️ Kasayı Sil</button>
   <button class="btn ghost" onclick="closeSheet()">Kapat</button>`);
 }
 function openInvite(vid){
@@ -2097,7 +2102,7 @@ function openInvite(vid){
     <option value="editor">Düzenleyen — kayıt ekleyip değiştirebilir</option>
     <option value="viewer">İzleyici — yalnızca görür</option>
   </select>
-  <button class="btn primary" onclick="saveInvite('${vid}')">Davet Et</button>
+  <button class="btn primary" onclick="saveInvite(${jsq(vid)})">Davet Et</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
 }
 async function saveInvite(vid){
@@ -2684,13 +2689,13 @@ function openLocalBackups(){
   const rows=ks.map(k=>{
     let info='';
     try{const d=JSON.parse(localStorage.getItem(k));info=(d.assets?d.assets.length:0)+' varlık · '+(d.debts?d.debts.length:0)+' borç/alacak · '+(d.zakat?d.zakat.length:0)+' zekât'}catch(e){}
-    return '<div class="item"><div class="ic">🕘</div><div class="tx"><b>'+trDate(k.replace(pfx,''))+'</b><small>'+info+'</small></div><button class="iconbtn" style="font-size:14px;font-weight:800;color:var(--green)" onclick="restoreLocalBackup(\''+k+'\')">Geri Yükle</button></div>';
+    return '<div class="item"><div class="ic">🕘</div><div class="tx"><b>'+trDate(k.replace(pfx,''))+'</b><small>'+info+'</small></div><button class="iconbtn" style="font-size:14px;font-weight:800;color:var(--green)" onclick="restoreLocalBackup('+jsq(k)+')">Geri Yükle</button></div>';
   }).join('');
   sheet('<h3>Günlük Yedekler</h3><p class="mini" style="margin-top:0">Her günün ilk değişikliğinden önceki durum saklanır (son 7 gün). Geri yükleme, mevcut veriyi bu yedekle değiştirir.</p>'+rows+'<button class="btn ghost" onclick="closeSheet()">Kapat</button>');
 }
 function restoreLocalBackup(k){
   sheet(`<h3>Yedeği geri yükle?</h3><p class="mini" style="margin-top:0"><b>${trDate(k.replace(bakPrefix(),''))}</b> tarihli yedek, şu anki verilerin yerine geçecek ve buluta da bu hali yazılacak.</p>
-  <button class="btn primary" onclick="doRestoreLocalBackup('${k}')">Evet, geri yükle</button>
+  <button class="btn primary" onclick="doRestoreLocalBackup(${jsq(k)})">Evet, geri yükle</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
 }
 function doRestoreLocalBackup(k){
@@ -2727,7 +2732,10 @@ function wipeData(){
 
 /* ═══════════ YARDIMCI ═══════════ */
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function trDate(s){if(!s)return'';const[y,m,d]=s.split('-');return d+'.'+m+'.'+y}
+/* onclick="f(...)" içine gömülecek değer: önce JS dizgesi, sonra HTML özniteliği olarak kaçırılır.
+   Kayıt id'leri kasa verisinden gelir; düzenleyici bir üye elle bozuk id yazsa da kod çalışmaz. */
+function jsq(s){return esc(JSON.stringify(String(s==null?'':s)))}
+function trDate(s){if(!s)return'';const[y,m,d]=String(s).split('-');return esc(d+'.'+m+'.'+y)}
 /* "3 saat önce" biçiminde göreli zaman — senkron/kur tazeliğini bir bakışta göstermek için */
 function relTime(t){
   if(!t)return null;
