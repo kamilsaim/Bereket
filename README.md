@@ -71,6 +71,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - **Değişiklikler karşı tarafta anında görünür** (Supabase Realtime; bağlantı koparsa kısa aralıklı yoklama devralır)
 - **Çift taraflı düzenlemede veri kaybı yok**: her kayıt zaman damgalı, silmeler "mezar taşı" olarak işaretli ve buluta yazma iyimser kilitli — siz varlık eklerken eşiniz borç eklerse **ikisi de korunur**
 - Form doldururken karşı taraftan değişiklik gelirse ekranınız altınızdan yenilenmez, pencereyi kapatınca uygulanır
+- **Yetkiler sunucuda korunur** (v1.23.5): roller yalnızca arayüzde değil veritabanı kurallarında da uygulanır — Düzenleyen kasanın sahipliğini ele geçiremez, İzleyici değişiklik yapamaz ve bildirim gönderemez; davetler yalnızca **doğrulanmış** e-posta adresiyle kabul edilir. Diğer üyelerden gelen notlar ve kayıtlar ekranda düz metin olarak gösterilir, içine kod gömülemez
 - Sahiplik devredilebilir; kasadan ayrılabilir, sahibi kasayı silebilir. Hesabınızı silerseniz başka üyesi olan kasalar en eski üyeye devrolur
 - ⚠️ Paylaştığınız kişi o kasadaki **tüm finansal verinizi** görür; paylaşılmış veri geri alınamaz (bkz. [gizlilik politikası](gizlilik-politikasi.html))
 - **Hareket geçmişi** (v1.20.0) — kasadaki her ekleme/silme/güncelleme kimin yaptığı ve ne zaman yapıldığıyla kaydedilir; karşı taraf bir değişiklik yaptığında bildirim (toast) gösterilir, Ayarlar → Hareketler kartından geçmiş görüntülenebilir
@@ -117,6 +118,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 | Depolama | `localStorage` (JSON yedekleme ile taşınabilir) |
 | Kur kaynağı | [finans.truncgil.com](https://finans.truncgil.com) (isteğe bağlı) |
 | Bulut yedekleme | Supabase (isteğe bağlı, Google girişiyle) |
+| Güvenlik | Row Level Security + rol koruma tetikleyicisi; arayüzde tüm kullanıcı verisi kaçışlı basılır |
 | Tipografi | Marcellus + Manrope |
 
 ## 📋 Sürüm Geçmişi
