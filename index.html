@@ -245,6 +245,8 @@ nav{
    imzasına göre hedefliyoruz — bu dosyadaki her düğme satır içi onclick
    kullanıyor ve 24 ayrı şablon dizesini elle işaretlemek hata riskiydi.
    ^= ile tam çağrı öneki eşleşir: openDebt( ile openDebtCard( karışmaz. */
+/* v1.24.0: Capacitor uygulamalarında (iOS/APK) anlamsız web metinleri (ana ekrana ekle vb.) */
+html.native .web-only{display:none}
 body.ro [onclick^="openAsset("],body.ro [onclick^="delAsset("],
 body.ro [onclick^="openDebt("],body.ro [onclick^="delDebt("],body.ro [onclick^="toggleDebt("],
 body.ro [onclick^="openPayment("],body.ro [onclick^="delPayment("],
@@ -425,7 +427,7 @@ window.addEventListener('error',function(e){
     <img src="" data-logo alt="" style="width:64px;opacity:.9">
     <p class="mini" style="font-style:italic;margin-top:8px">"Namazı dosdoğru kılın ve zekâtı verin. Kendiniz için önceden her ne iyilik yaparsanız, mükâfatını Allah'ın yanında bulacaksınız. Çünkü Allah, bütün yaptıklarınızı görmektedir." <b>— Bakara Suresi, 110</b></p>
     <div class="verbadge">Bereket <b id="a-ver"></b></div>
-    <p class="mini">Veriler bu cihazda saklanır; isteğe bağlı olarak Google ile giriş yapıp buluta yedekleyebilirsiniz.<br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</p>
+    <p class="mini">Veriler bu cihazda saklanır; isteğe bağlı olarak Google veya Apple ile giriş yapıp buluta yedekleyebilirsiniz.<span class="web-only"><br>Ana ekrana ekleyerek uygulama gibi kullanabilirsiniz.</span></p>
   </div>
   <div class="card">
     <h2>Bulut Yedekleme <span class="rule"></span></h2>
@@ -491,6 +493,16 @@ const HIDE_KEY='bereket_hide';
 const SB_URL='https://pdxnpnlwrtswwifevlil.supabase.co';
 const SB_KEY='sb_publishable_GL8MYellfvYl3sz76ZOKVw_n4JbUe4Y';
 const SB_SESSION_KEY='bereket_sb_session';
+/* v1.24.0 — App Store iOS uygulaması (Capacitor kabuğu, C:\mac\bereket). Web/PWA ve Android APK'de false. */
+const IS_NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+const IOS_APP=IS_NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios';
+if(IS_NATIVE)document.documentElement.classList.add('native');
+/* Apple ile Giriş (App Store kuralı 4.8: Google girişi varsa zorunlu). beebook projesindeki tüm uygulamalarla
+   ortak "KSapp" Services ID'si; Supabase'deki Apple secret'ı 6 ayda bir yenilenir (bitiş 6 Nisan 2027 —
+   C:\apk\apple-anahtar\beebook\OKU-BENI.md). Süresi dolarsa / acil durumda false yap. */
+const APPLE_GIRIS_ACIK=true;
+/* Apple'da "E-postamı gizle" seçilince adres …@privaterelay.appleid.com olur — ekranda anlamsız görünür */
+function showEmail(e){return /@privaterelay\.appleid\.com$/i.test(e||'')?'Gizli (Apple ile giriş)':(e||'')}
 const CLOUD_SYNC_KEY='bereket_cloud_lastsync';
 const CLOUD_ERR_KEY='bereket_cloud_lasterr';      // son başarısız buluta yazma (sessiz bozulmayı görünür kılar)
 const HAVL_NOTIFY_KEY='bereket_havl_notified';    // havl hatırlatmasının en son gösterildiği gün
@@ -517,8 +529,9 @@ const ASSET_TYPES={
 /* Tanımsız tür (silinmiş tür, yeni sürümden gelen veri, bozuk kayıt) ekranı çökertmesin; değeri 0 sayılır */
 const UNKNOWN_TYPE={name:'Bilinmeyen tür',unit:'',ic:'❔',gold:false};
 function atype(t){return ASSET_TYPES[t]||UNKNOWN_TYPE}
-const APP_VERSION='1.23.5';
+const APP_VERSION='1.24.0';
 const CHANGELOG=[
+ {v:'1.24.0',d:'09.10.2026',n:'App Store iOS uygulamasina hazirlik: Apple ile Giris eklendi (Google ile birlikte), iOS uygulamasinda kasa bildirimleri APNs ile geliyor, iOS uygulamasinda yedek dosyasi paylasim menusuyle kaydediliyor, Apple gizli e-posta adresleri ekranda Gizli olarak gorunuyor, uygulama icinde ana ekrana ekle ipucu gizlendi'},
  {v:'1.23.5',d:'05.10.2026',n:'Guvenlik: varlik ve zekat notlari artik guvenli metin olarak gosteriliyor (paylasilan kasada kod enjeksiyonu kapatildi), kayit kimlikleri ve tarihler tiklama kodlarina guvenli gomuluyor, tanimsiz varlik turu ekrani cokertmiyor. Sunucu: duzenleyici kasa sahipligini ele geciremiyor, davetler yalnizca dogrulanmis e-postayla kabul ediliyor, izleyiciler bildirim gonderemiyor'},
  {v:'1.23.4',d:'24.08.2026',n:'Uygulama acilirken de uyari: bulut kasasi/kasalari olan bir kullanici cihaza ozel yerel kasada kaldiysa Ozet sekmesinde artik surekli bir banner gorunuyor ve Kasalarimi Ac baglantisiyla dogru kasaya gecebiliyor, sadece Buluttan Geri Yukle tuslandiginda degil'},
  {v:'1.23.3',d:'24.08.2026',n:'Buluttan Geri Yukle yerel kasadayken aciklayici bir uyari gosterir artik: bulutta veri olsa bile yerel kasadan cekilemeyecegini, once Kasalar bolumunden dogru bulut kasasina gecilmesi gerektigini anlatir ve Kasalarimi Ac dugmesiyle oraya yonlendirir'},
@@ -1220,7 +1233,7 @@ function renderAyar(){
 /* ═══════════ HAREKET GEÇMİŞİ (v1.20.0) ═══════════ */
 function logWho(e){
   if(!e.by||e.by===whoAmI())return 'Siz';
-  const nm=e.by.split('@')[0];
+  const nm=/@privaterelay\.appleid\.com$/i.test(e.by)?'Apple kullanıcısı':e.by.split('@')[0];
   /* Kişi kasadan çıkarıldıysa hareketleri SİLİNMEZ (geçmiş bozulmasın) ama
      artık üye olmadığı belli olsun. */
   if(_emailsLoaded&&_vaultEmails.indexOf(e.by.toLowerCase())<0)return nm+' (ayrıldı)';
@@ -1680,8 +1693,9 @@ function renderCloud(){
   const s=getSession();
   const last=localStorage.getItem(CLOUD_SYNC_KEY);
   if(!s){
-    el.innerHTML=`<p class="mini" style="margin-top:0">Verileriniz varsayılan olarak yalnızca bu cihazda saklanır. Google ile giriş yaparak isteğe bağlı bulut yedeği alabilir, verilerinizi başka cihazlarla senkronize edebilirsiniz.</p>
-    <button class="btn primary" onclick="cloudLoginGoogle()">🔐 Google ile Giriş Yap</button>`;
+    el.innerHTML=`<p class="mini" style="margin-top:0">Verileriniz varsayılan olarak yalnızca bu cihazda saklanır. Google veya Apple ile giriş yaparak isteğe bağlı bulut yedeği alabilir, verilerinizi başka cihazlarla senkronize edebilirsiniz.</p>
+    <button class="btn primary" onclick="cloudLogin('google')">🔐 Google ile Giriş Yap</button>
+    ${APPLE_GIRIS_ACIK?`<button class="btn" style="background:#000;color:#fff;border-color:#000" onclick="cloudLogin('apple')"><svg width="15" height="17" viewBox="0 0 814 1000" fill="#fff" style="vertical-align:-2px;margin-right:6px"><path d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 123-156 123s-86-40-165-40c-77 0-104 41-166 41s-106-57-156-127C44 790 0 671 0 557c0-182 119-279 236-279 62 0 114 41 153 41 37 0 95-43 166-43 27 0 124 2 188 65zM558 158c29-35 50-83 50-131 0-7-1-14-2-19-47 2-104 32-138 71-27 30-52 78-52 127 0 7 1 15 2 17 3 1 8 1 13 1 43 0 96-28 127-66z"/></svg>Apple ile Giriş Yap</button>`:''}`;
   }else{
     const err=localStorage.getItem(CLOUD_ERR_KEY);
     const rel=relTime(last);
@@ -1689,28 +1703,30 @@ function renderCloud(){
     const durum=err
       ? `<span style="color:var(--red)">⚠️ Yedekleme başarısız (${relTime(err)||'—'})</span>`
       : (last?`<span style="color:${stale?'var(--red)':'var(--green)'}">${stale?'⚠️':'✓'} ${rel}</span>` : '<span style="opacity:.7">henüz yedeklenmedi</span>');
-    el.innerHTML=`<p class="mini" style="margin-top:0">Giriş yapıldı: <b>${esc(s.user.email||'')}</b><br>Son senkron: ${durum}${last?` <span style="opacity:.6">(${new Date(last).toLocaleString('tr-TR')})</span>`:''}</p>
+    el.innerHTML=`<p class="mini" style="margin-top:0">Giriş yapıldı: <b>${esc(showEmail(s.user.email))}</b><br>Son senkron: ${durum}${last?` <span style="opacity:.6">(${new Date(last).toLocaleString('tr-TR')})</span>`:''}</p>
     <button class="btn primary" style="margin-top:4px" onclick="cloudPush()">📤 Şimdi Buluta Yedekle</button>
     <button class="btn ghost" onclick="cloudPull()">☁️ Buluttan Geri Yükle</button>
     <button class="btn ghost" onclick="cloudLogout()">Çıkış Yap</button>
     <button class="btn ${pushOn()?'gold':'ghost'} wr-hide" style="margin-top:10px" onclick="togglePush()">${pushOn()?'🔔 Kasa bildirimleri açık':'🔕 Kasa bildirimlerini aç'}</button>
     <p class="mini" style="margin-top:6px;opacity:.75">Kasanızı paylaştığınız kişiler bir kayıt eklediğinde/değiştirdiğinde bu cihaza bildirim gelir. Kendi yaptığınız değişiklikler için bildirim gönderilmez.</p>
     <button class="btn danger" style="margin-top:10px" onclick="deleteAccount()">🗑️ Hesabımı Kalıcı Olarak Sil</button>
-    <p class="mini" style="margin-top:6px;opacity:.75">Buluttaki Bereket verilerinizi kalıcı olarak siler; başka uygulamada veriniz yoksa Google hesabınız da silinir. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
+    <p class="mini" style="margin-top:6px;opacity:.75">Buluttaki Bereket verilerinizi kalıcı olarak siler; başka uygulamada veriniz yoksa hesabınız da silinir. Bu işlem geri alınamaz. (Uygulamasız erişim için: <a href="gizlilik-politikasi.html">gizlilik politikası</a> sayfasından da talep edebilirsiniz.)</p>`;
   }
 }
 
-function cloudLoginGoogle(){
-  // APK (Capacitor WebView) → Google girişi WebView'da engelli; sistem tarayıcısında aç, deep link ile dön
+/* Google ve Apple ortak (provider='google'|'apple'). Dönüş her ikisinde de #access_token fragment'ı taşır. */
+function cloudLogin(provider){
+  // APK/iOS (Capacitor WebView) → OAuth WebView'da engelli; sistem tarayıcısında aç, deep link ile dön
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){
     const redirect='com.kamilsaim.bereket://auth-callback';
-    const url=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);
+    const url=SB_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirect);
     window.Capacitor.Plugins.Browser.open({url,windowName:'_self'});
     return;
   }
   const redirect=location.origin+location.pathname;
-  location.href=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);
+  location.href=SB_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirect);
 }
+function cloudLoginGoogle(){cloudLogin('google')}
 
 // Play Store zorunluluğu: uygulama içinden hesap + bulut verisi kalıcı silme (iki aşamalı onay)
 async function deleteAccount(){
@@ -1728,7 +1744,7 @@ async function deleteAccount(){
   sheet(`<h3>⚠️ Hesabı Sil</h3>
   <p class="mini" style="margin-top:0">Bu işlem <b>geri alınamaz</b>. Buluttaki <b>Bereket verileriniz</b> kalıcı olarak silinir.</p>
   ${extra}
-  <p class="mini" style="opacity:.85">ℹ️ Google hesabınız yalnızca başka hiçbir uygulamada veriniz kalmadıysa tamamen silinir; aksi halde hesabınız korunur ve sadece Bereket verisi silinir.</p>
+  <p class="mini" style="opacity:.85">ℹ️ Hesabınız yalnızca başka hiçbir uygulamada veriniz kalmadıysa tamamen silinir; aksi halde hesabınız korunur ve sadece Bereket verisi silinir.</p>
   <p class="mini">Bu cihazdaki yerel verileriniz cihazda kalır; onları ayrıca "Tüm Verileri Sil" ile temizleyebilirsiniz.</p>
   <button class="btn danger" onclick="deleteAccountConfirm()">Devam et →</button>
   <button class="btn ghost" onclick="closeSheet()">Vazgeç</button>`);
@@ -1742,7 +1758,7 @@ function deleteAccountConfirm(){
 async function deleteAccountRun(){
   closeSheet();
   const s=await sbToken();
-  if(!s){toast('Önce Google ile giriş yapın');return}
+  if(!s){toast('Önce giriş yapın');return}
   toast('Siliniyor…');
   try{
     const r=await fetch(SB_URL+'/functions/v1/bereket-delete-account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'}});
@@ -2075,7 +2091,7 @@ async function openMembers(vid){
   _members=(r&&r.ok)?await r.json():[];
   const rn={owner:'Sahip',editor:'Düzenleyen',viewer:'İzleyici'};
   const rows=_members.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(30,86,49,.08)">
-    <div><b>${esc(m.email)}</b><br><span class="mini">${rn[m.role]}${m.status==='pending'?' · davet bekliyor':''}</span></div>
+    <div><b>${esc(showEmail(m.email))}</b><br><span class="mini">${rn[m.role]}${m.status==='pending'?' · davet bekliyor':''}</span></div>
     <div style="display:flex;align-items:center;gap:4px">
       ${m.role!=='owner'?`
         <select onchange="setMemberRole('${vid}','${m.id}',this.value)">
@@ -2095,8 +2111,8 @@ async function openMembers(vid){
 }
 function openInvite(vid){
   sheet(`<h3>Kişi Davet Et</h3>
-  <p class="mini" style="margin-top:0">Davet edilen kişi <b>aynı e-posta ile Google girişi</b> yaptığında kasa otomatik olarak listesinde görünür.</p>
-  <label>Google e-posta adresi</label><input id="f-iemail" type="email" placeholder="ornek@gmail.com">
+  <p class="mini" style="margin-top:0">Davet edilen kişi <b>aynı e-posta ile giriş</b> yaptığında kasa otomatik olarak listesinde görünür. (Apple ile girişte "E-postamı gizle" seçildiyse davet eşleşmez; o kişi Google ile ya da e-postasını paylaşarak girmelidir.)</p>
+  <label>Giriş e-posta adresi</label><input id="f-iemail" type="email" placeholder="ornek@gmail.com">
   <label>Yetki</label>
   <select id="f-irole">
     <option value="editor">Düzenleyen — kayıt ekleyip değiştirebilir</option>
@@ -2194,7 +2210,7 @@ function applyCloud(row){
   renderAll();
 }
 async function cloudPush(silent){
-  const s=await sbToken();if(!s){if(!silent)toast('Önce Google ile giriş yapın');return}
+  const s=await sbToken();if(!s){if(!silent)toast('Önce giriş yapın');return}
   if(silent&&!_syncReady)return; // açılış yarışını engelle: bulut okunmadan otomatik yazma yok
   if(isEmptyData(S)){
     const row=await cloudLoad();
@@ -2300,6 +2316,8 @@ function queueCloudSync(){
    önceden yazılamaz, dışarıdan push gerekir. İki taşıyıcı gerekiyor çünkü:
      • Android WebView (APK) Push API'sini DESTEKLEMEZ → FCM eklentisi şart
      • iOS ana ekran PWA'sı FCM kullanamaz → Web Push (VAPID) şart
+     • App Store iOS uygulaması (v1.24.0) WKWebView'dir, SW push YOK → aynı eklenti iOS'ta
+       APNs jetonu verir, kind='apns' olarak kaydedilir (bereket-notify v7 APNs'e yollar)
    Gönderim sunucuda: bereket-notify Edge Function (kasa üyeliği orada doğrulanır). */
 const VAPID_PUB='BOf2k2FV93Xl3ZIgRjpRXNBn6zDUUOn0ZevY6xbQOZSMtjaEpoWT2OStEHxpU-CvQf7KfC6p_of93VvodYzhbTI';
 const PUSH_KEY='bereket_push';               // cihaz ayarı: hide gibi, senkronlanmaz
@@ -2329,7 +2347,7 @@ async function pushSave(kind,endpoint,p256dh,auth){
 
 /* Bildirimleri aç: APK'de FCM token'ı, web/PWA'da Web Push aboneliği alınır. */
 async function enablePush(){
-  if(!getSession())return toast('Önce Google ile giriş yapın');
+  if(!getSession())return toast('Önce giriş yapın');
   const pn=_PN();
   if(pn){
     try{
@@ -2345,7 +2363,7 @@ async function enablePush(){
         const t=setTimeout(()=>rej(0),15000);
         pn.addListener('registration',async(tk)=>{
           clearTimeout(t);
-          if(await pushSave('fcm',tk.value,null,null)){localStorage.setItem(PUSH_KEY,'1');res()}
+          if(await pushSave(IOS_APP?'apns':'fcm',tk.value,null,null)){localStorage.setItem(PUSH_KEY,'1');res()}
           else rej(0);
         });
         pn.addListener('registrationError',()=>{clearTimeout(t);rej(0)});
@@ -2377,7 +2395,7 @@ async function disablePush(){
       // FCM token'ını sunucudan düşürmek için elimizde değer yok; kullanıcının TÜM
       // fcm aboneliklerini silmek yerine yalnız bu cihazınkini silemeyiz — bu yüzden
       // yeniden kayıt olmayı bırakıyoruz ve sunucudaki fcm satırlarını temizliyoruz.
-      await sbFetch('brkt_push_subs?kind=eq.fcm&user_id=eq.'+(getSession()||{}).user.id,{method:'DELETE'});
+      await sbFetch('brkt_push_subs?kind=eq.'+(IOS_APP?'apns':'fcm')+'&user_id=eq.'+(getSession()||{}).user.id,{method:'DELETE'});
     }else if('serviceWorker' in navigator){
       const reg=await navigator.serviceWorker.ready;
       const sub=await reg.pushManager.getSubscription();
@@ -2561,7 +2579,7 @@ async function processAuthTokens(at,rt,ei){
     const u=await ur.json();
     setSession({access_token:at,refresh_token:rt,expires_at:Date.now()/1000+ei,user:{id:u.id,email:u.email}});
     setMe(u.email);
-    toast('Google ile giriş yapıldı ✓');
+    toast('Giriş yapıldı ✓');
     await cloudSyncPrompt();
   }catch(e){toast('Giriş sırasında hata oluştu')}
 }
@@ -2707,7 +2725,18 @@ function doRestoreLocalBackup(k){
     queueCloudSync();closeSheet();renderAll();toast('Yedek geri yüklendi ✓');
   }catch(e){toast('Yedek okunamadı')}
 }
-function exportData(){
+async function exportData(){
+  /* iOS WKWebView'de blob + a.download dosya indirmez → Filesystem (CACHE'e yaz) + Share
+     (paylaşım menüsü → "Dosyalar'a Kaydet"). Eklentiler yalnız iOS paketinde; yoksa eski yol. */
+  const P=window.Capacitor&&window.Capacitor.Plugins;
+  if(IOS_APP&&P&&P.Filesystem&&P.Share){
+    try{
+      const name='bereket-yedek-'+new Date().toISOString().slice(0,10)+'.json';
+      const w=await P.Filesystem.writeFile({path:name,data:JSON.stringify(S,null,2),directory:'CACHE',encoding:'utf8'});
+      await P.Share.share({title:'Bereket yedeği',files:[w.uri]});
+    }catch(e){if(!/cancel/i.test(String(e&&e.message||e)))toast('Yedek paylaşılamadı')}
+    return;
+  }
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);

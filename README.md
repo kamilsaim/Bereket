@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.23.5-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.24.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -54,7 +54,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Kısmi iade takibi: her kayda birden çok iade eklenebilir, kalan bakiye otomatik hesaplanır
 
 ### ☁️ Bulut Yedekleme (isteğe bağlı)
-- Google ile giriş yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz
+- **Google veya Apple ile giriş** yaparak verilerinizi Supabase üzerinde yedekleyebilirsiniz (Apple ile girişte "E-postamı gizle" seçilirse adres uygulamada "Gizli" olarak görünür)
 - Giriş yapmadan uygulama tamamen çevrimdışı ve cihaz-içi çalışmaya devam eder
 - "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
 - **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve düzenli aralıklarla başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
@@ -117,7 +117,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 | Yapı | Tek dosya HTML + CSS + JS, framework yok (+ çevrimdışı için `sw.js` ve `manifest.json`) |
 | Depolama | `localStorage` (JSON yedekleme ile taşınabilir) |
 | Kur kaynağı | [finans.truncgil.com](https://finans.truncgil.com) (isteğe bağlı) |
-| Bulut yedekleme | Supabase (isteğe bağlı, Google girişiyle) |
+| Bulut yedekleme | Supabase (isteğe bağlı, Google veya Apple girişiyle) |
 | Güvenlik | Row Level Security + rol koruma tetikleyicisi; arayüzde tüm kullanıcı verisi kaçışlı basılır |
 | Tipografi | Marcellus + Manrope |
 
@@ -125,6 +125,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.24.0** | 09.10.2026 | **App Store (iOS) uygulamasına hazırlık**: Apple ile Giriş, iOS uygulamasında kasa bildirimleri (APNs), iOS uygulamasında JSON yedeğini paylaşım menüsüyle "Dosyalar'a Kaydet", gizli Apple e-postası "Gizli" olarak gösterilir |
 | **v1.23.x** | 05.10.2026 | Güvenlik güncellemesi: paylaşılan kasada notlar ve kayıt kimlikleri üzerinden kod enjeksiyonu kapatıldı, düzenleyici rolündeki bir üyenin kasa sahipliğini ele geçirmesi sunucuda engellendi, davetler yalnızca doğrulanmış e-postayla kabul ediliyor, izleyiciler bildirim gönderemiyor (v1.23.5). Kasa seçilmediğinde Özet ekranında uyarı gösteriliyor (v1.23.4). Buluttan Geri Yükle, yerel (cihaza özel) kasadayken artık sessizce "veri bulunamadı" demek yerine açıklayıcı bir uyarı gösteriyor ve Kasalar bölümüne yönlendiriyor (v1.23.3). Kayıt formlarına çift gönderim kilidi eklendi (v1.23.2). APK sürümünde geri tuşu düzeltildi (v1.23.1). Özet ekranında son 24 saatteki servet değişim rozeti ve Varlıklar sekmesinde toplam/tür dağılımı/has altın özet kartı eklendi (v1.23.0) |
 | **v1.22.1** | 15.08.2026 | iOS ana ekran modunda alt menünün ekranın dibine tam oturması sağlandı (viewport-fit=cover kaldırıldı) |
 | **v1.22.0** | 12.08.2026 | **Kasa hareketi bildirimleri**: kasanızı paylaştığınız kişi bir kayıt eklediğinde/değiştirdiğinde uygulama kapalıyken de bildirim alırsınız (Ayarlar → Bulut Yedekleme'den açılır). Play sürümü için FCM, iOS ana ekran uygulaması ve tarayıcılar için Web Push kullanılır — bildirim yalnızca kimin ne tür işlem yaptığını taşır, finansal veri içermez. Ayrıca havl vade hatırlatması Play sürümünde de artık gerçekten çalışıyor (eksik olan bildirim eklentisi kuruldu) |

@@ -35,10 +35,10 @@
 <header>
   <div class="logo">🕌</div>
   <h1>Bereket — Gizlilik Politikası</h1>
-  <p>Son güncelleme: 12 Ağustos 2026</p>
+  <p>Son güncelleme: 9 Ekim 2026</p>
 </header>
 <main>
-  <p><b>Bereket</b>, zekât ve varlık takibi için geliştirilmiş bir uygulamadır. Bu politika hem web sürümü hem de Google Play üzerinden dağıtılan <b>Android uygulaması</b> (paket adı: <code>com.kamilsaim.bereket</code>) için geçerlidir ve uygulamanın hangi verileri işlediğini, bu verilerin nasıl silinebileceğini açıklar.</p>
+  <p><b>Bereket</b>, zekât ve varlık takibi için geliştirilmiş bir uygulamadır. Bu politika web sürümü, Google Play üzerinden dağıtılan <b>Android uygulaması</b> ve App Store üzerinden dağıtılan <b>iOS uygulaması</b> (paket adı her ikisinde: <code>com.kamilsaim.bereket</code>) için geçerlidir ve uygulamanın hangi verileri işlediğini, bu verilerin nasıl silinebileceğini açıklar.</p>
 
   <div class="box">
     <p style="margin:0"><b>Veri sorumlusu / geliştirici:</b> Kamil Saim — Türkiye<br>
@@ -49,7 +49,7 @@
   <p>Bereket, varsayılan olarak <b>hiçbir veriyi sunucuya göndermez</b>. Girdiğiniz tüm varlık, borç, alacak, emanet ve zekât kayıtları yalnızca <b>kendi cihazınızda</b> (tarayıcı <code>localStorage</code>'ında) saklanır.</p>
   <p>Yalnızca <b>isteğe bağlı bulut yedekleme</b> özelliğini kullanmayı seçerseniz aşağıdaki veriler işlenir:</p>
   <ul>
-    <li><b>Ad, e-posta adresi</b> — Google ile giriş yaptığınızda, hesabınızı tanımlamak için.</li>
+    <li><b>Ad, e-posta adresi</b> — Google ile giriş yaptığınızda, hesabınızı tanımlamak için. Apple ile giriş yaptığınızda yalnızca e-posta adresiniz alınır; e-postanızı gizlemeyi seçerseniz Apple’ın verdiği yönlendirme adresi (…@privaterelay.appleid.com) kullanılır.</li>
     <li><b>Uygulama verileriniz</b> (varlık/borç/zekât kayıtlarınız) — bulutta yedeklenir. Bir kasayı başkasıyla paylaşmadığınız sürece yalnızca siz erişebilirsiniz (bkz. <a href="#paylasilan-kasalar">Paylaşılan Kasalar</a>).</li>
     <li><b>Davet ettiğiniz kişilerin e-posta adresleri</b> — yalnızca bir kasayı paylaşmayı seçerseniz; daveti doğru kişiyle eşleştirmek için saklanır.</li>
     <li><b>Cihaz bildirim kimliği (push token)</b> — yalnızca <b>kasa bildirimlerini açarsanız</b>; bildirimin doğru cihaza ulaşması için saklanır. Kimliğinizi ortaya çıkarmaz, kişisel içerik taşımaz ve bildirimi kapattığınızda silinir.</li>
@@ -80,10 +80,12 @@
   <h2>Üçüncü Taraflar</h2>
   <ul>
     <li><b>Google</b> — yalnızca giriş (OAuth) için; ad ve e-posta bilgisi alınır.</li>
+    <li><b>Apple</b> — yalnızca “Apple ile Giriş” seçeneğini kullanırsanız, giriş için; e-posta adresi (veya Apple yönlendirme adresi) alınır.</li>
     <li><b>Supabase</b> — bulut yedeğinizin saklandığı altyapı. Veriler HTTPS ile şifreli aktarılır ve satır bazlı güvenlik (RLS) ile yalnızca size &mdash; bir kasayı paylaştıysanız yalnızca size ve davet ettiğiniz kişilere &mdash; açıktır.</li>
     <li><b>finans.truncgil.com</b> — güncel altın/döviz kurlarını çekmek için (kişisel veri gönderilmez).</li>
     <li><b>Google Fonts</b> — arayüz yazı tiplerini yüklemek için; bu istek sırasında IP adresiniz Google sunucularına ulaşır. Uygulama verileriniz gönderilmez.</li>
     <li><b>Google Firebase Cloud Messaging</b> — yalnızca kasa bildirimlerini açtıysanız, Android sürümünde bildirimi cihazınıza iletmek için. Finansal verileriniz gönderilmez.</li>
+    <li><b>Apple Push Notification service (APNs)</b> — yalnızca kasa bildirimlerini açtıysanız, iOS uygulamasında bildirimi cihazınıza iletmek için. Finansal verileriniz gönderilmez.</li>
   </ul>
 
   <h2>Verilerin Saklanma Süresi</h2>
@@ -109,7 +111,7 @@
 
   <h2>Hesabınızı ve Verilerinizi Silme</h2>
   <div class="box warn">
-    <p style="margin-top:0"><b>Uygulama içinden:</b> Ayarlar → Bulut Yedekleme → <b>“Hesabımı Kalıcı Olarak Sil”</b> düğmesiyle buluttaki Bereket verilerinizi kalıcı olarak silebilirsiniz. Bu Google hesabıyla başka bir uygulamada veriniz kalmadıysa hesabınız da tamamen silinir. Bu işlem geri alınamaz.</p>
+    <p style="margin-top:0"><b>Uygulama içinden:</b> Ayarlar → Bulut Yedekleme → <b>“Hesabımı Kalıcı Olarak Sil”</b> düğmesiyle buluttaki Bereket verilerinizi kalıcı olarak silebilirsiniz. Bu hesapla (Google veya Apple) başka bir uygulamada veriniz kalmadıysa hesabınız da tamamen silinir. Bu işlem geri alınamaz.</p>
     <p><b>Paylaşılan kasalar:</b> Yalnızca üyesi olduğunuz kasalardan üyeliğiniz kaldırılır, kasa ve verisi diğer üyelerde kalır. Sahibi olduğunuz kasalardan başka üyesi bulunanlar en eski üyeye devredilir; başka üyesi olmayanlar verileriyle birlikte silinir.</p>
     <p style="margin-bottom:0"><b>Uygulamasız / web üzerinden talep:</b> Uygulamaya erişiminiz yoksa, hesabınızın ve verilerinizin silinmesini talep etmek için aşağıdaki adrese e-posta gönderebilirsiniz. Talebiniz en geç 30 gün içinde yerine getirilir.</p>
   </div>
