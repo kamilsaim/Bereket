@@ -10,7 +10,7 @@ Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayı
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
 ![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.25.1-C9A227)
-![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
+![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android%20%C2%B7%20iOS-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
 ### 🌐 Uygulamayı Aç → [kamilsaim.github.io/Bereket](https://kamilsaim.github.io/Bereket/)
@@ -36,7 +36,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Matrah = varlıklar + alacaklar − borçlar; nisabı aşınca **%2,5 (1/40)** hesaplanır
 - **Kamerî yıl (havl) takibi**: nisaba ulaştığınız tarihi kaydedin, 354 gün dolunca uygulama uyarır
 - Ödediğiniz zekâtları tarihçesiyle kaydedin; **ödenen / kalan** tutar otomatik izlenir, dönem tamamlanınca havl yenilenebilir
-- **Vade hatırlatıcısı** 🔔 — bildirim izni verirseniz kamerî yılın dolmasına 7 gün kala hatırlatılır (Android APK'de uygulama kapalıyken de çalışan gerçek bildirim, web sürümünde uygulamayı açtığınızda)
+- **Vade hatırlatıcısı** 🔔 — bildirim izni verirseniz kamerî yılın dolmasına 7 gün kala hatırlatılır (Android ve iPhone uygulamasında uygulama kapalıyken de çalışan gerçek bildirim, web sürümünde uygulamayı açtığınızda). İzin yalnızca Zekât sekmesindeki hatırlatma düğmesine bastığınızda istenir
 
 ### 🤝 Borç / Alacak
 - TL, Dolar, Euro, **gram/çeyrek/yarım/tam/Cumhuriyet/Ata altını** veya gümüş cinsinden borç ve alacak kaydı
@@ -58,7 +58,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Giriş yapmadan uygulama tamamen çevrimdışı ve cihaz-içi çalışmaya devam eder
 - "Şimdi Buluta Yedekle" / "Buluttan Geri Yükle" ile manuel senkron; her kayıttan sonra otomatik arka plan senkronu
 - **Otomatik çekme**: uygulama açıldığında, sekme/uygulama tekrar öne geldiğinde ve düzenli aralıklarla başka cihazdan gelen daha yeni veri varsa sessizce çekilir — elle "geri yükle" demeye gerek kalmadan diğer cihazdaki değişiklikler kısa sürede görünür
-- Cihaz değiştirdiğinizde Google ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
+- Cihaz değiştirdiğinizde Google veya Apple ile giriş yapıp buluttaki verilerinizi geri yükleyebilirsiniz
 - **Veri kaybı koruması**: açılışta bulut önce okunur, karar verilmeden hiçbir otomatik senkron çalışmaz; boş yerel veri dolu bulut yedeğinin üzerine asla sessizce yazılamaz
 - **Günlük otomatik yerel yedekler**: son 7 günün yedeği Ayarlar'dan geri yüklenebilir — buluta hiç girmeden de bir güvenlik ağı sağlar
 - **Senkron sağlığı görünür**: Ayarlar'da son senkron "5 dakika önce ✓" biçiminde gösterilir; yedekleme başarısız olduysa veya 24 saattir yedek alınmadıysa Özet sayfasının tepesinde kırmızı uyarı çıkar — sessizce bozulan senkron fark edilmeden kalmaz
@@ -75,7 +75,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Sahiplik devredilebilir; kasadan ayrılabilir, sahibi kasayı silebilir. Hesabınızı silerseniz başka üyesi olan kasalar en eski üyeye devrolur
 - ⚠️ Paylaştığınız kişi o kasadaki **tüm finansal verinizi** görür; paylaşılmış veri geri alınamaz (bkz. [gizlilik politikası](gizlilik-politikasi.html))
 - **Hareket geçmişi** (v1.20.0) — kasadaki her ekleme/silme/güncelleme kimin yaptığı ve ne zaman yapıldığıyla kaydedilir; karşı taraf bir değişiklik yaptığında bildirim (toast) gösterilir, Ayarlar → Hareketler kartından geçmiş görüntülenebilir
-- **Kasa bildirimleri** 🔔 (v1.22.0) — uygulama **kapalıyken de** haberiniz olur: diğer üye bir kayıt eklediğinde/değiştirdiğinde telefonunuza bildirim düşer. Ayarlar → Bulut Yedekleme'den açılır, kendi yaptığınız değişiklikler için bildirim gönderilmez ve bildirim metni finansal tutar içermez
+- **Kasa bildirimleri** 🔔 (v1.22.0) — uygulama **kapalıyken de** haberiniz olur: diğer üye bir kayıt eklediğinde/değiştirdiğinde telefonunuza bildirim düşer. Ayarlar → Bulut Yedekleme'den açılır, kendi yaptığınız değişiklikler için bildirim gönderilmez ve bildirim metni finansal tutar içermez. Web/PWA'da Web Push, Android uygulamasında FCM, iPhone uygulamasında Apple'ın bildirim servisi (APNs) kullanılır
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
@@ -84,6 +84,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - **Kurlar otomatik internetten güncellenir** — açılışta son çekimden 3 saat geçtiyse (gereksiz istekleri önlemek için), sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
 - **Kur tazeliği göstergesi** — kurların ne zaman çekildiği "3 saat önce" biçiminde görünür; 24 saatten eskiyse hesaplamaların eski fiyatlara dayandığı uyarısı çıkar
 - **Çevrimdışı çalışır** — bir kez açtıktan sonra internet olmadan da açılır (service worker); internet varken her zaman en güncel sürüm yüklenir
+- **Yeni sürüm şeridi** (v1.25.1) — Android/iPhone uygulamasında yayında daha yeni sürüm varsa alt menünün üstünde "Yeni sürüm hazır — Yenile" çıkar, tek dokunuşla güncellenir
 - JSON yedek alma / geri yükleme
 - Silme gibi geri alınamaz işlemler **uygulama içi onay penceresiyle** yapılır (tarayıcı popup'u değil)
 
@@ -98,12 +99,14 @@ Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 > 💡 Uygulama **[kamilsaim.github.io/Bereket](https://kamilsaim.github.io/Bereket/)** üzerinde (GitHub Pages) canlıdır; internet yalnızca kur çekmek için gerekir, uygulama çevrimdışı da çalışır.
 >
 > 📱 **Android:** Uygulama ayrıca Capacitor ile bir Android APK kabuğu olarak paketlenmiştir; aynı canlı adresi bir uygulama olarak açar.
+>
+> 🍎 **iPhone:** App Store uygulaması hazırlanıyor (şu an TestFlight testinde). Aynı canlı adresi açan Capacitor kabuğudur; kasa bildirimleri APNs ile gelir, Apple ile Giriş iOS'un kendi penceresiyle yapılır, JSON yedeği paylaşım menüsünden "Dosyalar'a Kaydet" ile alınır. Web güncellemeleri uygulamaya yeniden derleme gerekmeden yansır.
 
 ## 🔒 Gizlilik
 
 Tüm verileriniz varsayılan olarak **yalnızca kendi cihazınızda** (`localStorage`) saklanır.
 Hiçbir sunucuya hiçbir veri gönderilmez. Kur güncelleme isteğe bağlıdır.
-Google ile giriş yapmayı seçerseniz veriler ayrıca Supabase'de, Row Level Security ile korunan
+Google veya Apple ile giriş yapmayı seçerseniz veriler ayrıca Supabase'de, Row Level Security ile korunan
 size özel bir kayıtta saklanır. Giriş yapmazsanız bu adım hiç devreye girmez.
 
 Bir kasayı paylaşmayı seçerseniz (v1.19.0), **davet ettiğiniz kişiler o kasadaki tüm finansal
