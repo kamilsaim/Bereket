@@ -3,6 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script>
+/* v1.24.1: App Store iOS uygulaması (Capacitor kabuğu, contentInset:never) sayfayı ekranın en
+   tepesinden başlatır; viewport-fit=cover olmadan env(safe-area-inset-*) 0 gelir ve yeşil başlık
+   Dinamik Ada'nın, alt menü ana ekran çubuğunun arkasında kalır. YALNIZ iOS uygulamasında eklenir:
+   ana ekran PWA'sında v1.22.1'de kaldırıldı (alt menü kayıyordu), Android APK (Capacitor 8) da
+   cover ile sistem çubuğu dolgusunu kaybeder. */
+if(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios'){
+  document.querySelector('meta[name=viewport]').content+=', viewport-fit=cover';
+}
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- v1.14.6 KRİTİK: "black-translucent" KULLANILMAYACAK. iOS ana ekran modunda sayfayı
@@ -529,8 +539,9 @@ const ASSET_TYPES={
 /* Tanımsız tür (silinmiş tür, yeni sürümden gelen veri, bozuk kayıt) ekranı çökertmesin; değeri 0 sayılır */
 const UNKNOWN_TYPE={name:'Bilinmeyen tür',unit:'',ic:'❔',gold:false};
 function atype(t){return ASSET_TYPES[t]||UNKNOWN_TYPE}
-const APP_VERSION='1.24.0';
+const APP_VERSION='1.24.1';
 const CHANGELOG=[
+ {v:'1.24.1',d:'15.10.2026',n:'iOS uygulamasi icin: ust baslik ve alt menu artik iPhone guvenli alanina uyuyor (viewport-fit=cover yalniz iOS uygulamasinda), Apple ile Giris iPhone uygulamasinda iOS un kendi giris penceresiyle yapiliyor'},
  {v:'1.24.0',d:'09.10.2026',n:'App Store iOS uygulamasina hazirlik: Apple ile Giris eklendi (Google ile birlikte), iOS uygulamasinda kasa bildirimleri APNs ile geliyor, iOS uygulamasinda yedek dosyasi paylasim menusuyle kaydediliyor, Apple gizli e-posta adresleri ekranda Gizli olarak gorunuyor, uygulama icinde ana ekrana ekle ipucu gizlendi'},
  {v:'1.23.5',d:'05.10.2026',n:'Guvenlik: varlik ve zekat notlari artik guvenli metin olarak gosteriliyor (paylasilan kasada kod enjeksiyonu kapatildi), kayit kimlikleri ve tarihler tiklama kodlarina guvenli gomuluyor, tanimsiz varlik turu ekrani cokertmiyor. Sunucu: duzenleyici kasa sahipligini ele geciremiyor, davetler yalnizca dogrulanmis e-postayla kabul ediliyor, izleyiciler bildirim gonderemiyor'},
  {v:'1.23.4',d:'24.08.2026',n:'Uygulama acilirken de uyari: bulut kasasi/kasalari olan bir kullanici cihaza ozel yerel kasada kaldiysa Ozet sekmesinde artik surekli bir banner gorunuyor ve Kasalarimi Ac baglantisiyla dogru kasaya gecebiliyor, sadece Buluttan Geri Yukle tuslandiginda degil'},
@@ -1716,6 +1727,7 @@ function renderCloud(){
 
 /* Google ve Apple ortak (provider='google'|'apple'). Dönüş her ikisinde de #access_token fragment'ı taşır. */
 function cloudLogin(provider){
+  if(provider==='apple'&&IOS_APP&&window.Capacitor.Plugins.SignInWithApple)return appleNativeLogin();
   // APK/iOS (Capacitor WebView) → OAuth WebView'da engelli; sistem tarayıcısında aç, deep link ile dön
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){
     const redirect='com.kamilsaim.bereket://auth-callback';
@@ -1727,6 +1739,33 @@ function cloudLogin(provider){
   location.href=SB_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirect);
 }
 function cloudLoginGoogle(){cloudLogin('google')}
+/* v1.24.1: iPhone uygulamasında iOS'un kendi Apple girişi. Tarayıcı akışı ortak "KSapp" Services ID'sinden
+   gittiği için Apple ekranında grubun ana uygulaması (Bal Defterim) görünüyordu; native akışta kimlik
+   doğrudan com.kamilsaim.bereket (Supabase Client IDs listesinde var). Eklenti yalnız iOS paketinde
+   (@capacitor-community/apple-sign-in); yoksa (eski derleme) yukarıdaki tarayıcı akışı çalışır.
+   nonce tekrar oynatmayı engeller: Apple'a SHA-256'sı, Supabase'e ham hali gider. */
+async function appleNativeLogin(){
+  const raw=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const hashed=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))]
+    .map(b=>b.toString(16).padStart(2,'0')).join('');
+  let r;
+  try{
+    r=await window.Capacitor.Plugins.SignInWithApple.authorize({
+      clientId:'com.kamilsaim.bereket',redirectURI:SB_URL+'/auth/v1/callback',scopes:'email',nonce:hashed});
+  }catch(e){
+    // Kullanıcı vazgeçtiyse (ASAuthorizationError 1001) sessiz kal
+    if(!/1001|cancel/i.test(String((e&&e.message)||e)))toast('Apple ile giriş yapılamadı');
+    return;
+  }
+  try{
+    const res=await fetch(SB_URL+'/auth/v1/token?grant_type=id_token',{method:'POST',
+      headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({provider:'apple',id_token:r.response.identityToken,nonce:raw})});
+    const j=await res.json();
+    if(!res.ok||!j.access_token)throw 0;
+    await processAuthTokens(j.access_token,j.refresh_token,j.expires_in||3600);
+  }catch(e){toast('Apple girişi tamamlanamadı')}
+}
 
 // Play Store zorunluluğu: uygulama içinden hesap + bulut verisi kalıcı silme (iki aşamalı onay)
 async function deleteAccount(){
