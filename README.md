@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.25.0-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.25.1-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -125,6 +125,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 ## 📋 Sürüm Geçmişi
 
 | Sürüm | Tarih | Yenilikler |
+| **v1.25.1** | 15.10.2026 | iOS/Android uygulamasında yeni sürüm şeridi: yayında daha yeni sürüm varsa "Yeni sürüm hazır — Yenile" çıkar |
 |---|---|---|
 | **v1.25.0** | 15.10.2026 | **Değer Hesapla** (Özet): seçilen tür ve miktarın güncel kurla TL karşılığı (ör. 50 gr has altın, 5 çeyrek) ve tersi (20.000 ₺ kaç çeyrek eder); altınlarda has gram karşılığı |
 | **v1.24.2** | 15.10.2026 | iOS uygulaması: kasa bildirimleri iPhone'da açılabiliyor (sunucu düzeltmesi), kasa seçerken habersiz bildirim izni sorulmuyor |
