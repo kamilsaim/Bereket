@@ -10,7 +10,7 @@
    - Supabase (bulut yedek) ve kur API'si: SW hiç karışmaz, doğrudan ağa gider.
      Bunların önbelleğe alınması yanlış/eski veri riski doğurur.
 */
-const CACHE = 'bereket-v1.24.1';
+const CACHE = 'bereket-v1.24.2';
 const SHELL = ['./', './index.html', './gizlilik-politikasi.html', './manifest.json', './512.png'];
 
 self.addEventListener('install', e => {
