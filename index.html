@@ -371,6 +371,19 @@ window.addEventListener('error',function(e){
   </div>
 
   <div class="card">
+    <h2>Değer Hesapla <span class="rule"></span></h2>
+    <div class="seg" id="calc-mode">
+      <button class="on" data-m="q" onclick="calcSetMode('q')">Miktar → ₺</button>
+      <button data-m="tl" onclick="calcSetMode('tl')">₺ → Miktar</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <select id="calc-type" style="flex:1.5" onchange="calcRun()"></select>
+      <input id="calc-qty" type="text" inputmode="decimal" autocomplete="off" placeholder="Miktar" style="flex:1" oninput="calcRun()">
+    </div>
+    <div id="calc-out"></div>
+  </div>
+
+  <div class="card">
     <h2>Güncel Kurlar <span class="rule"></span><span class="pill" id="oz-kurtarih"></span></h2>
     <div id="oz-kurlar"></div>
     <button class="btn ghost" onclick="fetchRates()">⟳ Kurları internetten güncelle</button>
@@ -539,8 +552,9 @@ const ASSET_TYPES={
 /* Tanımsız tür (silinmiş tür, yeni sürümden gelen veri, bozuk kayıt) ekranı çökertmesin; değeri 0 sayılır */
 const UNKNOWN_TYPE={name:'Bilinmeyen tür',unit:'',ic:'❔',gold:false};
 function atype(t){return ASSET_TYPES[t]||UNKNOWN_TYPE}
-const APP_VERSION='1.24.2';
+const APP_VERSION='1.25.0';
 const CHANGELOG=[
+ {v:'1.25.0',d:'15.10.2026',n:'Ozet sayfasina Deger Hesapla karti eklendi: secilen tur ve miktarin guncel kurla TL karsiligi (or. 50 gr has altin, 5 ceyrek) ve tersi (bir tutar kac adet/gram eder); altinlarda has gram karsiligi da gosterilir, kasaya hicbir sey yazilmaz'},
  {v:'1.24.2',d:'15.10.2026',n:'iOS uygulamasi: kasa secerken habersiz cikan bildirim izni penceresi kaldirildi (havl hatirlatmasi izin yoksa sessizce atlaniyor, izni yalniz hatirlatma dugmesi istiyor). Sunucuda brkt_push_subs tablosu apns aboneliklerini kabul edecek sekilde duzeltildi, iPhone kasa bildirimleri artik acilabiliyor'},
  {v:'1.24.1',d:'15.10.2026',n:'iOS uygulamasi icin: ust baslik ve alt menu artik iPhone guvenli alanina uyuyor (viewport-fit=cover yalniz iOS uygulamasinda), Apple ile Giris iPhone uygulamasinda iOS un kendi giris penceresiyle yapiliyor'},
  {v:'1.24.0',d:'09.10.2026',n:'App Store iOS uygulamasina hazirlik: Apple ile Giris eklendi (Google ile birlikte), iOS uygulamasinda kasa bildirimleri APNs ile geliyor, iOS uygulamasinda yedek dosyasi paylasim menusuyle kaydediliyor, Apple gizli e-posta adresleri ekranda Gizli olarak gorunuyor, uygulama icinde ana ekrana ekle ipucu gizlendi'},
@@ -911,6 +925,71 @@ function renderOzet(){
   });
   document.getElementById('oz-kurlar').innerHTML=kh;
   renderSpark();
+  calcRun();
+}
+
+/* ═══════════ DEĞER HESAPLA (v1.25.0) ═══════════
+   "50 gr has altın / 5 çeyrek kaç ₺ eder" ve tersi ("20.000 ₺ kaç çeyrek eder"). Yalnız hesaplar,
+   S'e/kasaya hiçbir şey yazmaz. Değerleme varlık listesindekiyle aynıdır (assetValue/hasGrams).
+   Kişisel veri olmadığı için gizlilik modunda (isHidden) maskelenmez → fmt/fmt2 yerine kendi biçimi.
+   Son seçilen tür ve yön cihaz ayarıdır (localStorage, senkronlanmaz). */
+const CALC_KEY='bereket_calc';
+let _calcMode='q';
+const calcNF=(n,d)=>new Intl.NumberFormat('tr-TR',{maximumFractionDigits:d}).format(n);
+function calcParse(s){
+  // "1.250,5" (tr) ve "1250.5" ikisini de kabul et: virgül varsa noktalar binlik ayırıcıdır
+  s=String(s||'').trim().replace(/\s/g,'');
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');   // "20.000" → 20000 (tr binlik)
+  const n=parseFloat(s);return isFinite(n)&&n>0?n:0;
+}
+function calcInit(){
+  const sel=document.getElementById('calc-type');
+  if(!sel||sel.options.length)return;
+  sel.innerHTML=Object.keys(ASSET_TYPES).filter(k=>k!=='tl'&&k!=='diger')
+    .map(k=>'<option value="'+k+'">'+esc(ASSET_TYPES[k].name)+'</option>').join('');
+  let st={};try{st=JSON.parse(localStorage.getItem(CALC_KEY)||'{}')}catch(e){}
+  sel.value=ASSET_TYPES[st.t]&&st.t!=='tl'&&st.t!=='diger'?st.t:'ceyrek';
+  calcSetMode(st.m==='tl'?'tl':'q',true);
+}
+function calcSetMode(m,silent){
+  _calcMode=m;
+  document.querySelectorAll('#calc-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  const q=document.getElementById('calc-qty');
+  q.placeholder=m==='tl'?'Tutar (₺)':'Miktar';
+  if(!silent){q.value='';q.focus()}
+  calcRun();
+}
+function calcRun(){
+  const sel=document.getElementById('calc-type'),out=document.getElementById('calc-out');
+  if(!sel)return;
+  if(!sel.options.length){calcInit();return}
+  const t=sel.value,T=atype(t);
+  try{localStorage.setItem(CALC_KEY,JSON.stringify({t,m:_calcMode}))}catch(e){}
+  const unit=assetValue({type:t,qty:1});            // 1 birimin TL değeri
+  const hasUnit=hasGrams({type:t,qty:1});           // 1 birimin has altın gramı (altın değilse 0)
+  const unitTxt=T.unit==='adet'?'adet':T.unit;
+  if(!unit){out.innerHTML='<p class="mini">Bu tür için kur yok — aşağıdan kurları güncelleyin.</p>';return}
+  const v=calcParse(document.getElementById('calc-qty').value);
+  const rateLine='<p class="mini">1 '+esc(unitTxt)+' = '+calcNF(unit,2)+' ₺'+(hasUnit?' · '+calcNF(hasUnit,3)+' g has':'')+'</p>';
+  if(!v){out.innerHTML=rateLine;return}
+  let big,sub='';
+  if(_calcMode==='q'){
+    big=calcNF(unit*v,0)+' ₺';
+    if(hasUnit)sub='≈ '+calcNF(hasUnit*v,2)+' g has altın';
+  }else{
+    const n=v/unit;
+    if(T.unit==='adet'){
+      const whole=Math.floor(n+1e-9);
+      big=calcNF(n,2)+' adet';
+      sub=whole?whole+' adet alınır, '+calcNF(v-whole*unit,0)+' ₺ artar':'1 adet için '+calcNF(unit-v,0)+' ₺ daha gerekir';
+    }else{
+      big=calcNF(n,2)+' '+esc(T.unit);
+    }
+    if(hasUnit)sub+=(sub?' · ':'')+'≈ '+calcNF(hasUnit*n,2)+' g has';
+  }
+  out.innerHTML='<div class="num" style="font-family:Marcellus,serif;font-size:28px;color:var(--green-dk);margin-top:12px">≈ '+big+'</div>'
+    +(sub?'<p class="mini" style="margin-top:2px">'+sub+'</p>':'')+rateLine;
 }
 
 function assetBreakdown(){

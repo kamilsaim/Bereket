@@ -9,7 +9,7 @@
 Altın, döviz ve nakit varlıklarınızı takip edin, zekâtınızı hesaplayın,
 borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazınızda.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.24.2-C9A227)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v1.25.0-C9A227)
 ![Platform](https://img.shields.io/badge/platform-Web%20%C2%B7%20PWA%20%C2%B7%20Android-1E5631)
 ![Lisans](https://img.shields.io/badge/veri-%25100%20cihazda-1E5631)
 
@@ -79,6 +79,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 
 ### 📈 Diğer
 - **Servet geçmişi grafiği** — net servetiniz günlük kaydedilir
+- **Değer Hesapla** — Özet'te "5 çeyrek / 50 gr has altın kaç ₺ eder" ve tersi "20.000 ₺ kaç çeyrek eder"; altınlarda has gram karşılığı da gösterilir, hiçbir kayıt oluşturmaz
 - **Gizlilik modu** 🙈 — tek dokunuşla tüm tutarları gizleyin
 - **Kurlar otomatik internetten güncellenir** — açılışta son çekimden 3 saat geçtiyse (gereksiz istekleri önlemek için), sonucu bir bildirimle gösterilir; elle güncelleme de her zaman mümkündür
 - **Kur tazeliği göstergesi** — kurların ne zaman çekildiği "3 saat önce" biçiminde görünür; 24 saatten eskiyse hesaplamaların eski fiyatlara dayandığı uyarısı çıkar
@@ -125,6 +126,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 
 | Sürüm | Tarih | Yenilikler |
 |---|---|---|
+| **v1.25.0** | 15.10.2026 | **Değer Hesapla** (Özet): seçilen tür ve miktarın güncel kurla TL karşılığı (ör. 50 gr has altın, 5 çeyrek) ve tersi (20.000 ₺ kaç çeyrek eder); altınlarda has gram karşılığı |
 | **v1.24.2** | 15.10.2026 | iOS uygulaması: kasa bildirimleri iPhone'da açılabiliyor (sunucu düzeltmesi), kasa seçerken habersiz bildirim izni sorulmuyor |
 | **v1.24.1** | 15.10.2026 | iOS uygulaması: başlık ve alt menü iPhone güvenli alanına uyuyor, Apple ile Giriş iOS'un kendi giriş penceresiyle |
 | **v1.24.0** | 09.10.2026 | **App Store (iOS) uygulamasına hazırlık**: Apple ile Giriş, iOS uygulamasında kasa bildirimleri (APNs), iOS uygulamasında JSON yedeğini paylaşım menüsüyle "Dosyalar'a Kaydet", gizli Apple e-postası "Gizli" olarak gösterilir |
