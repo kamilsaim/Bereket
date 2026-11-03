@@ -3,3 +3,9 @@ CAPACITOR_APK_REHBERI.md
 PLAY_STORE_YAYINLAMA_REHBERI.md
 *firebase-adminsdk*.json
 google-services.json
+
+# iOS yerel uygulama: ayri gizli depo (kamilsaim/bereket-ios-yerel), bu herkese acik depoya GIRMEZ
+ios-yerel/
+Yenilogo/
+yenilogo/
+IMG_*.PNG
