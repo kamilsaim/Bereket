@@ -100,7 +100,7 @@ Uygulama tek bir HTML dosyasıdır, kurulum gerektirmez:
 >
 > 📱 **Android:** Uygulama ayrıca Capacitor ile bir Android APK kabuğu olarak paketlenmiştir; aynı canlı adresi bir uygulama olarak açar.
 >
-> 🍎 **iPhone:** App Store uygulaması hazırlanıyor (şu an TestFlight testinde). Aynı canlı adresi açan Capacitor kabuğudur; kasa bildirimleri APNs ile gelir, Apple ile Giriş iOS'un kendi penceresiyle yapılır, JSON yedeği paylaşım menüsünden "Dosyalar'a Kaydet" ile alınır. Web güncellemeleri uygulamaya yeniden derleme gerekmeden yansır.
+> 🍎 **iPhone:** yerel (SwiftUI) iPhone uygulaması TestFlight testinde (2.0). Web ve Android ile aynı bulut kasalarını kullanır; Özet, Varlıklar, Zekât, Borç/Alacak/Emanet, paylaşılan kasalar, hareket geçmişi ve Değer Hesapla iPhone'da da var. Apple veya Google ile giriş yapılır, giriş yapmadan da kullanılabilir. Kasa bildirimleri Apple'ın bildirim servisiyle (APNs) gelir, JSON yedeği paylaşım menüsünden alınır. Uygulamanın kodu ayrı, gizli bir depodadır; bu depodaki web sürümü değişmeden çalışmaya devam eder.
 
 ## 🔒 Gizlilik
 
