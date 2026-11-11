@@ -75,7 +75,7 @@ header{
      #app'in padding-top'u JS ile başlık yüksekliğine eşitlenir (setHeaderPad). */
   position:absolute;top:0;left:0;right:0;z-index:40;
   background:linear-gradient(170deg,var(--green) 0%,var(--green-dk) 100%);
-  color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 24px;
+  color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 20px;
 }
 header::after{ /* kemer silueti — inceltildi (v1.15.0) */
   content:"";position:absolute;left:0;right:0;bottom:-1px;height:16px;
@@ -101,15 +101,15 @@ main{padding:0 16px 24px;max-width:560px;margin:0 auto}
 
 /* Ana bakiye kartı — kemer formlu */
 .hero{
-  margin-top:12px;position:relative;z-index:2;text-align:center; /* sticky header ile örtüşmesin (v1.12.0) */
+  margin-top:2px;position:relative;z-index:2;text-align:center; /* sticky header ile örtüşmesin (v1.12.0) */
   background:linear-gradient(180deg,#fff 0%,#FDFBF4 100%);
   border:1px solid rgba(201,162,39,.35);
   border-radius:110px 110px 22px 22px; /* sivri kemer hissi */
   box-shadow:0 6px 24px rgba(28,43,34,.12);
-  padding:26px 18px 20px;
+  padding:16px 18px 18px;
 }
-.hero::before{content:"☪";position:absolute;top:12px;left:50%;transform:translateX(-50%);color:var(--gold);font-size:15px;opacity:.85}
-.hero .eyebrow{color:var(--gold-dk);margin-top:10px}
+.hero::before{content:"☪";position:absolute;top:8px;left:50%;transform:translateX(-50%);color:var(--gold);font-size:15px;opacity:.85}
+.hero .eyebrow{color:var(--gold-dk);margin-top:8px}
 .hero .amount{font-family:'Marcellus';font-size:38px;color:var(--green-dk);margin-top:4px}
 .hero .amount span{font-size:20px;color:var(--gold-dk)}
 .hero .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
@@ -587,8 +587,9 @@ function aicon(t){const k=AIMG_OF[t];return k?'<img class="aimg'+(t==='gumus'?' 
 /* Tanımsız tür (silinmiş tür, yeni sürümden gelen veri, bozuk kayıt) ekranı çökertmesin; değeri 0 sayılır */
 const UNKNOWN_TYPE={name:'Bilinmeyen tür',unit:'',ic:'❔',gold:false};
 function atype(t){return ASSET_TYPES[t]||UNKNOWN_TYPE}
-const APP_VERSION='1.26.0';
+const APP_VERSION='1.26.1';
 const CHANGELOG=[
+ {v:'1.26.1',d:'11.11.2026',n:'Ozet sayfasi: toplam servet karti ust basliga yaklastirildi, fazla bosluk kaldirildi'},
  {v:'1.26.0',d:'11.11.2026',n:'Varliklar sekmesi yenilendi: yeni varlik turu ikonlari, her kayit ayri kart, ust toplam tam rakamla, tur ozetleri dokununca listeyi suzuyor (toplam ve has gram secime gore)'},
  {v:'1.25.1',d:'15.10.2026',n:'iOS ve Android uygulamasinda yeni surum kontrolu: yayinda daha yeni surum varsa alt menunun ustunde Yeni surum hazir - Yenile seridi cikar, dokununca guncel sayfa yuklenir (uygulamada service worker olmadigi icin eskiden 10 dakikaya kadar eski surum gorunuyordu)'},
  {v:'1.25.0',d:'15.10.2026',n:'Ozet sayfasina Deger Hesapla karti eklendi: secilen tur ve miktarin guncel kurla TL karsiligi (or. 50 gr has altin, 5 ceyrek) ve tersi (bir tutar kac adet/gram eder); altinlarda has gram karsiligi da gosterilir, kasaya hicbir sey yazilmaz'},
