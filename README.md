@@ -29,7 +29,7 @@ borç ve alacaklarınızı unutmayın — hepsi tek bir dosyada, tamamen cihazı
 - Her altın varlığın **has gram karşılığı** listede gösterilir; toplam has altın 80 g nisabla karşılaştırılır
 - Gümüş, Dolar, Euro, TL nakit (₺ simgesiyle) ve serbest "diğer" varlıklar
 - Tüm varlıklar güncel kurla TL'ye çevrilir, dağılım grafiğiyle gösterilir
-- Varlıklar sekmesinde, hangi türden toplam ne kadar varlığınız olduğunun rozet (chip) görünümünde dökümü
+- Varlıklar sekmesinde her tür için ikonlu özet kutucukları (toplam miktar); bir kutucuğa dokununca liste o türe süzülür, üstteki toplam ve has gram da seçime göre değişir. Her kayıt ayrı bir kartta, türüne özel görselle gösterilir
 
 ### 🌱 Zekât Hesabı
 - Nisab: **80 gram has (24 ayar) altın** karşılığı, güncel kurla otomatik
@@ -134,6 +134,7 @@ Ayrıntılar: [gizlilik politikası](gizlilik-politikasi.html).
 | **v1.24.2** | 15.10.2026 | iOS uygulaması: kasa bildirimleri iPhone'da açılabiliyor (sunucu düzeltmesi), kasa seçerken habersiz bildirim izni sorulmuyor |
 | **v1.24.1** | 15.10.2026 | iOS uygulaması: başlık ve alt menü iPhone güvenli alanına uyuyor, Apple ile Giriş iOS'un kendi giriş penceresiyle |
 | **v1.24.0** | 09.10.2026 | **App Store (iOS) uygulamasına hazırlık**: Apple ile Giriş, iOS uygulamasında kasa bildirimleri (APNs), iOS uygulamasında JSON yedeğini paylaşım menüsüyle "Dosyalar'a Kaydet", gizli Apple e-postası "Gizli" olarak gösterilir |
+| **v1.26.0** | 11.11.2026 | Varlıklar sekmesi yenilendi: yeni tür ikonları, kayıtlar ayrı kartlarda, tür özetleri dokununca süzgeç oluyor, toplam tam rakamla gösteriliyor |
 | **v1.23.x** | 05.10.2026 | Güvenlik güncellemesi: paylaşılan kasada notlar ve kayıt kimlikleri üzerinden kod enjeksiyonu kapatıldı, düzenleyici rolündeki bir üyenin kasa sahipliğini ele geçirmesi sunucuda engellendi, davetler yalnızca doğrulanmış e-postayla kabul ediliyor, izleyiciler bildirim gönderemiyor (v1.23.5). Kasa seçilmediğinde Özet ekranında uyarı gösteriliyor (v1.23.4). Buluttan Geri Yükle, yerel (cihaza özel) kasadayken artık sessizce "veri bulunamadı" demek yerine açıklayıcı bir uyarı gösteriyor ve Kasalar bölümüne yönlendiriyor (v1.23.3). Kayıt formlarına çift gönderim kilidi eklendi (v1.23.2). APK sürümünde geri tuşu düzeltildi (v1.23.1). Özet ekranında son 24 saatteki servet değişim rozeti ve Varlıklar sekmesinde toplam/tür dağılımı/has altın özet kartı eklendi (v1.23.0) |
 | **v1.22.1** | 15.08.2026 | iOS ana ekran modunda alt menünün ekranın dibine tam oturması sağlandı (viewport-fit=cover kaldırıldı) |
 | **v1.22.0** | 12.08.2026 | **Kasa hareketi bildirimleri**: kasanızı paylaştığınız kişi bir kayıt eklediğinde/değiştirdiğinde uygulama kapalıyken de bildirim alırsınız (Ayarlar → Bulut Yedekleme'den açılır). Play sürümü için FCM, iOS ana ekran uygulaması ve tarayıcılar için Web Push kullanılır — bildirim yalnızca kimin ne tür işlem yaptığını taşır, finansal veri içermez. Ayrıca havl vade hatırlatması Play sürümünde de artık gerçekten çalışıyor (eksik olan bildirim eklentisi kuruldu) |
